@@ -1,0 +1,11 @@
+.direnv/
+.venv/
+.cache/
+__pycache__/
+build/
+*.egg-info/
+local/
+compile_commands.json
+
+.qmlls.ini
+.gdbinit

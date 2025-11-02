@@ -1,0 +1,12 @@
+{
+  "executable": "QMcuWatchCounterTest",
+  "rate": "10",
+  "watches": [
+    {
+      "variable": "counter",
+      "plot": {
+        "type": "ring-buffer"
+      }
+    }
+  ]
+}

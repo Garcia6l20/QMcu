@@ -1,0 +1,8 @@
+{
+  "cmake.options.statusBarVisibility": "visible",
+  "cmake.buildDirectory": "${workspaceFolder}/build/${buildKit}/${buildType}",
+  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true,
+  "cmake.configureArgs": ["-DBUILD_TESTING=ON"]
+}

@@ -1,0 +1,6 @@
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(lcDebugger)
+Q_DECLARE_LOGGING_CATEGORY(lcDebuggerLLDB)
+Q_DECLARE_LOGGING_CATEGORY(lcWatcher)
+

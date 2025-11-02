@@ -1,0 +1,42 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch (current target)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${command:cmake.getLaunchTargetDirectory}",
+      // "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "environment": [
+        { "name": "ASAN_OPTIONS", "value": "abort_on_error=1" },
+        {
+          "name": "ELF_TEST_FILE",
+          // "value": "${workspaceFolder}/native/libstm32/test/test.elf"
+          "value": "/home/sylvain/projects/b2r/build/nucleo-debug/bin/b2r.elf"
+        }
+      ],
+      "args": [
+        // "${workspaceFolder}/QMcuWatch/test/custom.qml"
+        "${workspaceFolder}/QMcuWatch/test/counter.qml"
+      ],
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      // "externalConsole": true,
+      // "logging": {
+      //   "trace": true,
+      //   "traceResponse": true,
+      //   "engineLogging": true
+      // }
+    }
+  ]
+}
