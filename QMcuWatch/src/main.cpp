@@ -52,9 +52,13 @@ int main(int argc, char** argv)
   parser.process(app);
 
   QQmlApplicationEngine engine;
+#ifndef FORCE_DEVELOPMENT_QML_DIR
   engine.addImportPath("/usr/lib/qt6/qml");
   engine.addImportPath("/usr/local/lib/qt6/qml");
   engine.addImportPath(QDir::homePath() + "/.local/lib/qt6/qml");
+#else
+  engine.addImportPath(FORCE_DEVELOPMENT_QML_DIR);
+#endif
 
   QObject::connect(
       &engine,

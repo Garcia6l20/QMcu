@@ -11,7 +11,8 @@
       "inherits": ["base"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTING": "ON",
+        "FORCE_DEVELOPMENT_QML_DIR": "ON"
       }
     },
     {

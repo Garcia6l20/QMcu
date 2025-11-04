@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/qmcu/plot">
+        <file>images/pause.svg</file>
+        <file>images/play.svg</file>
+        <file>images/stop.svg</file>
+    </qresource>
+</RCC>

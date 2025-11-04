@@ -37,6 +37,10 @@ install(TARGETS QMcuWatch QMcuWatchCounterExample
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+if (FORCE_DEVELOPMENT_QML_DIR)
+  target_compile_definitions(QMcuWatch PRIVATE FORCE_DEVELOPMENT_QML_DIR="${QML_IMPORT_PATH}")
+endif()
+
 option(QMCUWATCH_FULL_DEPLOY "Use full reusable deployment script (take care this will install a lot of stuff)" OFF)
 if(QMCUWATCH_FULL_DEPLOY)
   qt_generate_deploy_qml_app_script(

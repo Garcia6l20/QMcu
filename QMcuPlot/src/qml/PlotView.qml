@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Effects
 
@@ -8,9 +9,9 @@ import QMcuPlot
 Rectangle {
     id: root
 
-    property color backgroundColor: Qt.rgba(0.03, 0.1, 0.03)
-    property color primary: Qt.lighter(root.backgroundColor, 7.5)
-
+    property color backgroundColor: Material.background
+    property color primary: Material.foreground
+    
     color: Qt.darker(backgroundColor, 1.5)
 
     default property alias series: plot.series

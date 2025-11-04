@@ -1,3 +1,4 @@
+set(CMAKE_AUTORCC ON)
 
 set(SRC
   src/AbstractPlotDataProvider.cpp
@@ -25,7 +26,13 @@ set(PUBLIC_HEADERS
   include/QMcu/Plot/FileIO.hpp
 )
 
-add_library(QMcuPlot SHARED ${SRC} ${PUBLIC_HEADERS})
+qt_add_library(QMcuPlot SHARED
+  ${SRC}
+  ${PUBLIC_HEADERS}
+  resources/resources.qrc
+  MANUAL_FINALIZATION
+)
+
 add_library(QMcu::Plot ALIAS QMcuPlot)
 set_target_properties(QMcuPlot PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 target_compile_features(QMcuPlot PUBLIC cxx_std_23)
@@ -55,6 +62,8 @@ qt_add_qml_module(QMcuPlot
   QML_FILES
     src/qml/PlotView.qml
     src/qml/PlotZoom.qml
+    src/qml/PlayButton.qml
+  RESOURCE_PREFIX /qmcu/plot
   OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcuPlot
 )
 
