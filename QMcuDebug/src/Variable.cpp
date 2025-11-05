@@ -278,15 +278,12 @@ void Variable::resolve()
       qFatal(lcWatcher) << "Multidimensional arrays not handled yet";
     }
 
-    // const auto address      = get_address(tmp_val);
-    // auto       value_loader = get_canonical_loader(tmp_val);
+    const size_t dimension_size = std::min(uint64_t(extents[0]), arrayElementCount_);
+    const auto   valuesize      = tmp_val.GetByteSize();
 
-    const size_t dimension_size = extents[0];
-
-    const auto tid       = get_meta_type(tmp_val);
-    const auto address   = get_address(value_);
-    const auto valuesize = tmp_val.GetByteSize();
-    auto       reader    = get_reader(address);
+    const auto tid     = get_meta_type(tmp_val);
+    const auto address = get_address(value_) + (arrayElementOffset_ * valuesize);
+    auto       reader  = get_reader(address);
     void*      local_data;
     void*      cache_data;
     switch(tid)
