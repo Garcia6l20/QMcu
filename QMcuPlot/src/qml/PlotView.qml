@@ -11,7 +11,7 @@ Rectangle {
 
     property color backgroundColor: Material.background
     property color primary: Material.foreground
-    
+
     color: Qt.darker(backgroundColor, 1.5)
 
     default property alias series: plot.series
@@ -127,6 +127,8 @@ Rectangle {
 
             radius: 64
 
+            property var overlayPoints: []
+
             Plot {
                 id: plot
                 anchors.fill: parent
@@ -135,62 +137,67 @@ Rectangle {
                 layer.enabled: true
                 layer.smooth: true
 
+                grid.color: Qt.darker(root.primary, 1.5)
+
                 Rectangle {
                     id: overlay
                     anchors.fill: parent
                     z: 10 // ensures it’s drawn on top of the plot content
-                    // radius: 64
-
-                    property var overlayPoints: []
 
                     Repeater {
-                        model: overlay.overlayPoints
+                        model: wrapper.overlayPoints
                         delegate: Item {
-                            property var info: modelData
+                            required property plotPointInfo modelData
 
-                            x: info.seriesLocalPoint.x
-                            y: info.seriesLocalPoint.y
+                            x: modelData.seriesLocalPoint.x
+                            y: modelData.seriesLocalPoint.y
 
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: 6
-                                height: 6
-                                radius: 3
-                                border.color: Qt.darker(info.series.lineColor, 4)
+                                radius: 4
+                                width: 2 * radius
+                                height: 2 * radius
+                                border.color: Qt.darker(parent.modelData.series.lineColor, 4)
                                 border.width: 1
-                                color: Qt.darker(info.series.lineColor, 2)
+                                color: Qt.darker(parent.modelData.series.lineColor, 2)
                             }
-
-                            Text {
-                                anchors.top: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: `(${info.seriesUnitPoint.x.toFixed(2)}, ${info.seriesUnitPoint.y.toFixed(2)})`
-                                color: root.primary
-                                font.bold: true
-                                font.pixelSize: 12
-                            }
-                        }
-                    }
-                }
-                Label {
-                    id: mouseInfos
-                    anchors.bottom: parent.bottom
-                    anchors.right: parent.right
-                    anchors.rightMargin: 64
-                    padding: 4
-                    color: root.primary
-
-                    Connections {
-                        target: overlay
-                        function onOverlayPointsChanged() {
-                            mouseInfos.text = overlay.overlayPoints//
-                            .map(info => `${info.series.name} mouse: ${info.mouseUnitPoint.x.toFixed(2)}, ${info.mouseUnitPoint.y.toFixed(2)}`)//
-                            .join(", ");
                         }
                     }
                 }
             }
 
+            RowLayout {
+                id: infos
+                anchors.bottom: wrapper.bottom
+                anchors.bottomMargin: 4
+                width: wrapper.width
+                spacing: 8
+
+                Item {
+                    width: wrapper.radius
+                }
+
+                Label {
+                    text: wrapper.overlayPoints.length ? "X: " + wrapper.overlayPoints[0].mouseUnitPoint.x.toFixed(2) : ""
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Repeater {
+                    model: wrapper.overlayPoints
+                    delegate: Label {
+                        required property plotPointInfo modelData
+                        text: `${modelData.series.name}: ${modelData.seriesUnitPoint.y.toFixed(2)}`
+                        color: modelData.series.lineColor
+                    }
+                }
+
+                Item {
+                    width: wrapper.radius
+                }
+            }
             // apply shadow on wrapper
             // MultiEffect {
             //     source: wrapper
@@ -236,8 +243,8 @@ Rectangle {
                 propagateComposedEvents: true
                 hoverEnabled: true
                 function updateOverlay(mouse) {
-                    overlay.overlayPoints = plot.valuesAt(Qt.point(mouse.x, mouse.y));
-                    // for (let info of overlay.overlayPoints) {
+                    wrapper.overlayPoints = plot.valuesAt(Qt.point(mouse.x, mouse.y));
+                    // for (let info of wrapper.overlayPoints) {
                     //     console.debug(`seriesDataPoint: ${info.seriesDataPoint}`);
                     //     console.debug(`mouseDataPoint: ${info.mouseDataPoint}`);
                     //     console.debug(`seriesUnitPoint: ${info.seriesUnitPoint}`);
@@ -251,7 +258,7 @@ Rectangle {
                     mouse.accepted = false;
                 }
                 onExited: {
-                    overlay.overlayPoints = [];
+                    wrapper.overlayPoints = [];
                 }
             }
         }
@@ -269,13 +276,16 @@ Rectangle {
             Repeater {
                 model: root.grid.ticks
                 delegate: Item {
+                    id: tickDelegate
+
+                    required property int modelData
 
                     height: parent.height
                     x: parent.width * (modelData + 1) / (root.grid.ticks + 1)
 
                     Text {
                         id: xTickLbl
-                        text: `tick#${modelData}`
+                        text: `tick#${tickDelegate.modelData}`
                         font.bold: true
                         color: root.primary
                         anchors.verticalCenter: parent.verticalCenter

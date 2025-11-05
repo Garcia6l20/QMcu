@@ -15,13 +15,15 @@ ApplicationWindow {
     visible: true
 
     Material.theme: Material.Dark
+    Material.background: Qt.rgba(0.03, 0.1, 0.03)
+    Material.foreground: Qt.lighter(Material.background, 8)
 
     TestCounter {
         id: counter1
         size: 101
         shift: 1
         low: 0
-        high: 100
+        high: 200
     }
 
     TestCounter {
@@ -41,32 +43,54 @@ ApplicationWindow {
         onTriggered: plotView.draw()
     }
 
-    PlotView {
-        id: plotView
+    ColumnLayout {
         anchors.fill: parent
-        grid.ticks: 3
-
-        axisX: ValueAxis {
-            min: 0
-            max: counter1.size - 1
+        RowLayout {
+            Item {
+                Layout.fillWidth: true
+            }
+            Button {
+                text: "Save"
+                onClicked: {
+                    plotView.grabToImage(function (result) {
+                        result.saveToFile("counters.png");
+                    });
+                }
+            }
+            Item {
+                Layout.fillWidth: true
+            }
         }
+        PlotView {
+            id: plotView
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            grid.ticks: 3
 
-        axisY: ValueAxis {
-            min: counter1.low - 10
-            max: counter1.high + 10
-        }
+            axisX: ValueAxis {
+                min: 0
+                max: counter1.size - 1
+            }
 
-        LinePlotSeries {
-            id: ps1
-            lineColor: "cyan"
-            dataProvider: counter1
-            lineStyle: LinePlotSeries.Halo
-        }
-        LinePlotSeries {
-            id: ps2
-            lineColor: "magenta"
-            dataProvider: counter2
-            lineStyle: LinePlotSeries.Halo
+            axisY: ValueAxis {
+                min: counter1.low - 10
+                max: counter1.high + 10
+            }
+
+            LinePlotSeries {
+                id: ps1
+                name: "counter1"
+                lineColor: "cyan"
+                dataProvider: counter1
+                lineStyle: LinePlotSeries.Halo
+            }
+            LinePlotSeries {
+                id: ps2
+                name: "counter2"
+                lineColor: "magenta"
+                dataProvider: counter2
+                lineStyle: LinePlotSeries.Halo
+            }
         }
     }
 }
