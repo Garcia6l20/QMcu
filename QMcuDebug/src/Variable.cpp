@@ -421,23 +421,32 @@ void Variable::resolve()
       default:
         qFatal(lcWatcher) << "Unhandled array type" << type()->name();
     }
+
+    const auto s0 = std::span{reinterpret_cast<std::byte*>(local_data), dimension_size * valuesize};
+    const auto s1 = std::span{reinterpret_cast<std::byte*>(cache_data), dimension_size * valuesize};
+
+    // load cache
+    // reader(std::span{reinterpret_cast<std::byte*>(cache_data), dimension_size * valuesize});
+    reader(s0);
+    std::ranges::copy(s0, s1.begin());
+
     loadValue_ = [this,
                   dimension_size,
                   valuesize,
                   &var0  = local_,
                   &var1  = cache_,
-                  data0  = reinterpret_cast<std::byte*>(local_data),
-                  data1  = reinterpret_cast<std::byte*>(cache_data),
+                  s0     = s0,
+                  s1     = s1,
                   reader = std::move(reader)](QVariant& out) mutable -> bool
     {
-      const bool ok = reader(std::span{data0, dimension_size * valuesize});
+      const bool ok = reader(s1);
       if(ok)
       {
-        if(::memcmp(data0, data1, dimension_size * valuesize) != 0)
+        if(not std::ranges::equal(s0, s1))
         {
           // swap local/cache data
           std::swap(var0, var1);
-          std::swap(data0, data1);
+          std::swap(s0, s1);
 
           out = var0;
         }
