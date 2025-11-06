@@ -1,11 +1,14 @@
-import QMcuPlot 1.0
-import QPlotTest 1.0
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
+import QtCore
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Dialogs
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick.Layouts
+import QtQuick.Window
+import QtCharts
+
+import QMcuPlot
+import QPlotTest
 
 ApplicationWindow {
     id: root
@@ -16,28 +19,32 @@ ApplicationWindow {
 
     Material.theme: Material.Dark
 
-    TestSignal {
-        id: s1
-    }
-
     Timer {
-        interval: 20
+        interval: 40
         repeat: true
         running: true
         onTriggered: {
-            plot.update();
+            plot.draw();
         }
     }
 
-    Rectangle {
-        id: background
-        anchors.fill: parent
-        // color: Material.backgroundColor
-        // color: '#c7853a'
-        color: '#797673'
+    FileDialog {
+        id: saveImgDial
+        currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["Png files (*.png)", "Jpeg files (*.jpeg)"]
+        defaultSuffix: ".png"
+        onAccepted: {
+            plot.grabToImage(image => {
+                image.saveToFile(selectedFile);
+            });
+        }
     }
 
-    property rect ps1ViewRect: Qt.rect(0, 0, 1, 1)
+    Shortcut {
+        sequence: StandardKey.Print
+        onActivated: saveImgDial.open()
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -47,89 +54,86 @@ ApplicationWindow {
             Layout.fillWidth: true
             // anchors.fill: parent
 
+            axisX: ValueAxis {
+                min: 0
+                max: 8000 - 1
+            }
+
+            axisY: ValueAxis {
+                min: -12.5
+                max: +12.5
+            }
+
             LinePlotSeries {
-                id: ps1
-                dataProvider: s1
-                yScale: yUnit
-            }
-        }
-
-        ColumnLayout {
-
-            Component {
-                id: customDial
-                Dial {
-                    from: -1
-                    to: 1
-                    value: 0
+                name: "1 Hz"
+                dataProvider: TestSignal {
+                    amplitude: 10
+                    frequency: 1
                 }
             }
-            RowLayout {
-                TestDial {
-                    name: "Y Pan"
-
-                    from: -0.5
-                    to: 0.5
-
-                    onMoved: {
-                        ps1ViewRect.y = value;
-                        ps1.setViewRect(root.ps1ViewRect);
-                    }
-                }
-                TestDial {
-                    name: "Y Zoom"
-                    from: 0.1   // minimal height (zoomed in)
-                    to: 1.0     // max height (fully zoomed out)
-                    value: ps1ViewRect.height  // start at full view
-
-                    onMoved: {
-                        const centerY = ps1ViewRect.y + ps1ViewRect.height / 2;
-                        const halfH = value / 2;
-
-                        // update ps1ViewRect to new zoomed height, keep centerY
-                        ps1ViewRect = Qt.rect(ps1ViewRect.x, centerY - halfH, ps1ViewRect.width, halfH * 2);
-
-                        ps1.setViewRect(ps1ViewRect);
-                        console.log(`Y: ${ps1ViewRect.y.toFixed(2)}, Height: ${ps1ViewRect.height.toFixed(2)}`);
-                    }
+            LinePlotSeries {
+                name: "2 Hz"
+                dataProvider: TestSignal {
+                    amplitude: -8
+                    frequency: 2
                 }
             }
-            RowLayout {
-                TestDial {
-                    name: "X Pan"
-
-                    from: -1
-                    to: 1
-
-                    onMoved: {
-                        ps1ViewRect.x = value;
-                        ps1.setViewRect(root.ps1ViewRect);
-                    }
+            LinePlotSeries {
+                name: "3 Hz"
+                dataProvider: TestSignal {
+                    amplitude: 9
+                    frequency: 3
                 }
-                TestDial {
-                    name: "X Zoom"
-                    from: 0.1   // minimal height (zoomed in)
-                    to: 2.0     // max height (fully zoomed out)
-                    value: ps1ViewRect.width  // start at full view
-
-                    onMoved: {
-                        const centerX = ps1ViewRect.x + ps1ViewRect.width / 2;
-                        const halfW = value / 2;
-
-                        // update ps1ViewRect to new zoomed height, keep centerY
-                        ps1ViewRect = Qt.rect(centerX - halfW, ps1ViewRect.y, halfW * 2, ps1ViewRect.height);
-
-                        ps1.setViewRect(ps1ViewRect);
-                        console.log(`X: ${ps1ViewRect.x.toFixed(2)}, Width: ${ps1ViewRect.width.toFixed(2)}`);
-                    }
+            }
+            LinePlotSeries {
+                name: "4 Hz"
+                dataProvider: TestSignal {
+                    amplitude: -7
+                    frequency: 4
+                }
+            }
+            LinePlotSeries {
+                name: "5 Hz"
+                dataProvider: TestSignal {
+                    amplitude: -9
+                    frequency: 5
+                }
+            }
+            LinePlotSeries {
+                name: "6 Hz"
+                dataProvider: TestSignal {
+                    amplitude: 8
+                    frequency: 6
+                }
+            }
+            LinePlotSeries {
+                name: "7 Hz"
+                dataProvider: TestSignal {
+                    amplitude: -7
+                    frequency: 7
+                }
+            }
+            LinePlotSeries {
+                name: "8 Hz"
+                dataProvider: TestSignal {
+                    amplitude: 6
+                    frequency: 8
+                }
+            }
+            LinePlotSeries {
+                name: "9 Hz"
+                dataProvider: TestSignal {
+                    amplitude: 7
+                    frequency: 9
+                }
+            }
+            LinePlotSeries {
+                name: "10 Hz"
+                dataProvider: TestSignal {
+                    amplitude: -6
+                    frequency: 10
                 }
             }
         }
-        // Potentiometer {
-        //     from: yUnit.valueMin
-        //     to: yUnit.valueMax
-        //     // color: "#00E676"
-        //     onValueChanged: console.log("Gain:", value.toFixed(2), "dB")
-        // }
     }
 }

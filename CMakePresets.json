@@ -12,7 +12,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": "ON",
-        "FORCE_DEVELOPMENT_QML_DIR": "ON"
+        "FORCE_DEVELOPMENT_QML_DIR": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {

@@ -115,5 +115,9 @@ sudo cmake --build --preset release --target install
 sudo cmake --workflow --preset release-install
 ```
 
+## 📈 Screenshots
+
+![Signals plot](screenshots/signals-plot.png "The test-signal application.")
+
 ## 📄 License
 [MIT License](LICENSE).

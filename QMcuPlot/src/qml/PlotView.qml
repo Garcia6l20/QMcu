@@ -93,7 +93,7 @@ Rectangle {
                         const infos = plot.unitPointsAt(Qt.point(0, y));
                         const info = infos[0];
                         // console.debug(`v-tick#${modelData} ${y} => ${info.mouseUnitPoint.y}`);
-                        yTickLbl.text = info.mouseUnitPoint.y.toFixed(2);
+                        yTickLbl.text = parseFloat(info.mouseUnitPoint.y.toFixed(2));
                     }
 
                     onYChanged: sync()
@@ -178,7 +178,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: wrapper.overlayPoints.length ? "X: " + wrapper.overlayPoints[0].mouseUnitPoint.x.toFixed(2) : ""
+                    text: wrapper.overlayPoints.length ? "X: " + parseFloat(wrapper.overlayPoints[0].mouseUnitPoint.x.toFixed(2)) : ""
                 }
 
                 Item {
@@ -189,7 +189,7 @@ Rectangle {
                     model: wrapper.overlayPoints
                     delegate: Label {
                         required property plotPointInfo modelData
-                        text: `${modelData.series.name}: ${modelData.seriesUnitPoint.y.toFixed(2)}`
+                        text: `${modelData.series.name}: ${parseFloat(modelData.seriesUnitPoint.y.toFixed(2))}`
                         color: modelData.series.lineColor
                     }
                 }
@@ -296,7 +296,7 @@ Rectangle {
                         const infos = plot.unitPointsAt(Qt.point(x, 0));
                         const info = infos[0];
                         // console.debug(`v-tick#${modelData} ${x} => ${info.mouseUnitPoint.x}`);
-                        xTickLbl.text = info.mouseUnitPoint.x.toFixed(2);
+                        xTickLbl.text = parseFloat(info.mouseUnitPoint.x.toFixed(2));
                         // xTickLbl.color = Qt.lighter(info.series.lineColor, 1.5);
                     }
 

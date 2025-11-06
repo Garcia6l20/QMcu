@@ -12,21 +12,68 @@ class TestSignal : public AbstractPlotDataProvider
   Q_OBJECT
   QML_ELEMENT
 
-  Q_PROPERTY(QVector<int> data MEMBER data_)
-  Q_PROPERTY(int border MEMBER border_)
+  Q_PROPERTY(uint32_t frequency READ frequency WRITE setFrequency NOTIFY frequencyChanged)
+  Q_PROPERTY(uint32_t sampleRate READ sampleRate WRITE setSampleRate NOTIFY sampleRateChanged)
+  Q_PROPERTY(double amplitude READ amplitude WRITE setAmplitude NOTIFY amplitudeChanged)
 
 public:
   using AbstractPlotDataProvider::AbstractPlotDataProvider;
   virtual ~TestSignal() = default;
 
-  QVector<int> data_   = {-1, 1, -1, 1, -1, 1};
-  int          border_ = 1;
+  double amplitude() const noexcept
+  {
+    return amplitude_;
+  }
+
+  uint32_t sampleRate() const noexcept
+  {
+    return sampleRate_;
+  }
+
+  uint32_t frequency() const noexcept
+  {
+    return frequency_;
+  }
+public slots:
+  void setAmplitude(double amplitude)
+  {
+    if(amplitude != amplitude_)
+    {
+      amplitude_ = amplitude;
+      emit amplitudeChanged(amplitude_);
+    }
+  }
+  void setSampleRate(uint32_t sampleRate)
+  {
+    if(sampleRate != sampleRate_)
+    {
+      sampleRate_ = sampleRate;
+      emit sampleRateChanged(sampleRate_);
+    }
+  }
+  void setFrequency(uint32_t frequency)
+  {
+    if(frequency != frequency_)
+    {
+      frequency_ = frequency;
+      emit frequencyChanged(frequency_);
+    }
+  }
+
+signals:
+  void amplitudeChanged(double);
+  void sampleRateChanged(uint32_t);
+  void frequencyChanged(uint32_t);
 
 protected:
   bool initializePlotContext(PlotContext& ctx) final
   {
-    mapped_ = createMappedArrayBuffer<int>(data_.count());
-    std::ranges::copy(data_, mapped_.begin());
+    const size_t n_samples = /* 2 * */ sampleRate_ * duration_;
+    mapped_                = createMappedArrayBuffer<double>(n_samples);
+    const double pulse     = frequency_ / double(sampleRate_);
+    std::ranges::generate(mapped_,
+                          [&, ii = 0] mutable
+                          { return amplitude_ * std::sin(ii++ * pulse * 2.0 * std::numbers::pi); });
     return true;
   }
 
@@ -36,5 +83,9 @@ protected:
   }
 
 private:
-  std::span<int> mapped_;
+  uint32_t          frequency_  = 440;
+  uint32_t          sampleRate_ = 8000;
+  double            amplitude_  = 1.0;
+  double            duration_   = 1.0;
+  std::span<double> mapped_;
 };

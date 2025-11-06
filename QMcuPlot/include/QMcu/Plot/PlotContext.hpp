@@ -10,6 +10,12 @@
 
 #include <functional>
 
+template <typename DstT, typename SrcT>
+inline constexpr std::span<DstT> span_cast(std::span<SrcT> src)
+{
+  return std::span{reinterpret_cast<DstT*>(src.data()), src.size_bytes() / sizeof(DstT)};
+}
+
 struct PlotContext
 {
   using real_t                   = double;
@@ -49,7 +55,7 @@ struct PlotContext
 
   struct ViewInfo
   {
-    QSize      viewport;    // pixel size
+    QSize      viewport; // pixel size
     bool       autoScale = true;
     QMatrix4x4 transform = identity();
 
@@ -65,9 +71,19 @@ struct PlotContext
       return _range;
     }
 
+    template <typename T> inline auto full_range() noexcept
+    {
+      return span_cast<T>(_range);
+    }
+
     inline auto current_range() noexcept
     {
       return _current_range;
+    }
+
+    template <typename T> inline auto current_range() noexcept
+    {
+      return span_cast<T>(_current_range);
     }
 
     inline auto current_byte_count()

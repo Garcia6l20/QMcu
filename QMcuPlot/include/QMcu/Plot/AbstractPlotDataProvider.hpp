@@ -18,7 +18,14 @@ public:
   using QObject::QObject;
   virtual ~AbstractPlotDataProvider() = default;
 
-  using UpdateRange = std::span<std::byte const>;
+  struct UpdateRange : std::span<std::byte const>
+  {
+    using std::span<std::byte const>::span;
+
+    template <typename SrcT> UpdateRange(span<SrcT> src) noexcept : span{std::as_bytes(src)}
+    {
+    }
+  };
 
   QString const& name() const noexcept
   {
