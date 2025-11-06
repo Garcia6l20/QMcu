@@ -6,23 +6,22 @@ Item {
     id: root
     anchors.fill: parent
 
-    property int xScaleZoom: 0
-    property int yScaleZoom: 0
+    required property Plot plot
 
     property int autoScaleMargin: 16
-
     property color rubberBandColor: "steelblue"
 
-    required property Plot plot
+    property int xScaleZoom: 1
+    property int yScaleZoom: 1
 
     Rectangle {
         id: rubberBand
         z: 9999
+        visible: rubberBandHandler.active
         border.color: root.rubberBandColor
         border.width: 1
         color: root.rubberBandColor
         opacity: 0.3
-        visible: false
         transform: Scale {
             origin.x: 0
             origin.y: 0
@@ -31,97 +30,104 @@ Item {
         }
     }
 
-    function dist(p1, p2) {
-        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    // --- Wheel zoom ---
+    WheelHandler {
+        id: wheelHandler
+        orientation: Qt.Vertical
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            const delta = 1 - event.angleDelta.y / 120 * 0.1;
+            // console.log("delta", delta);
+            if (event.modifiers & Qt.ControlModifier)
+                root.plot.zoomX(delta, event.x);
+            else
+                root.plot.zoomY(delta, event.y);
+        }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        propagateComposedEvents: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+    // --- Pinch zoom (touch) / untested ---
+    PinchHandler {
+        id: pinchHandler
+        acceptedDevices: PointerDevice.TouchScreen
+        onScaleChanged: {
+            root.plot.zoom(1 / scale);
+        }
+    }
 
-        property bool panning: false
-        property point panStart: Qt.point(0, 0)
+    // --- Panning ---
+    DragHandler {
+        id: panHandler
+        target: null
+        // acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchScreen
+        acceptedModifiers: Qt.NoModifier
+        acceptedButtons: Qt.LeftButton
+        onTranslationChanged: event => {
+            console.debug(`panHandler: ${event}`);
+            root.plot.pan(event.x, event.y);
+        }
+    }
 
-        onWheel: wheel => {
-            const delta = 1 - wheel.angleDelta.y / 120 * 0.1;
-            if (wheel.modifiers & Qt.ControlModifier) {
-                root.plot.zoomX(delta, wheel.x);
-            } else {
-                root.plot.zoomY(delta, wheel.y);
-            }
-        }
-        onPressed: mouse => {
-            // console.debug(`PlotZoom press: ${mouse.buttons}`);
-            if (mouse.buttons == Qt.RightButton) {
-                root.plot.zoomReset();
-                mouse.accepted = false;
-            } else {
-                if (mouse.modifiers & Qt.ControlModifier) {
-                    rubberBand.x = mouseX;
-                    rubberBand.y = mouseY;
-                    rubberBand.width = 0;
-                    rubberBand.height = 0;
-                    rubberBand.visible = true;
-                } else {
-                    panning = true;
-                    panStart = Qt.point(mouse.x, mouse.y);
-                }
-                mouse.accepted = true;
-            }
-        }
-        onMouseXChanged: mouse => {
-            if (panning) {
-                const panX = mouse.x - panStart.x;
-                const panY = mouse.y - panStart.y;
-                panStart = Qt.point(mouse.x, mouse.y);
-                root.plot.pan(panX, panY);
-            } else {
-                if (mouseX - rubberBand.x >= 0) {
-                    root.xScaleZoom = 1;
-                    rubberBand.width = mouseX - rubberBand.x;
-                } else {
-                    root.xScaleZoom = -1;
-                    rubberBand.width = rubberBand.x - mouseX;
+    // --- RubberBand ---
+    DragHandler {
+        id: rubberBandHandler
+        target: null
+        // acceptedDevices: PointerDevice.Mouse
+        acceptedModifiers: Qt.ControlModifier
+        acceptedButtons: Qt.LeftButton
+        // grabPermissions: PointerHandler.TakeOverForbidden
+
+        property point start: Qt.point(0, 0)
+
+        onActiveChanged: {
+            // console.debug(`rubberBandHandler: ${active}`);
+            if (active) {
+                start = centroid.position;
+                rubberBand.x = start.x;
+                rubberBand.y = start.y;
+                rubberBand.width = 0;
+                rubberBand.height = 0;
+                rubberBand.visible = true;
+            } else if (rubberBand.visible) {
+                rubberBand.visible = false;
+                if (rubberBand.width > 4 && rubberBand.height > 4) {
+                    const x = (centroid.position.x >= start.x) ? start.x : centroid.position.x;
+                    const y = (centroid.position.y >= start.y) ? start.y : centroid.position.y;
+                    root.plot.zoomIn(Qt.rect(x, y, rubberBand.width, rubberBand.height));
                 }
             }
         }
-        onMouseYChanged: mouse => {
-            if (panning) {
-                const panX = mouse.x - panStart.x;
-                const panY = mouse.y - panStart.y;
-                panStart = Qt.point(mouse.x, mouse.y);
-                root.plot.pan(panX, panY);
+
+        onTranslationChanged: {
+            // console.debug(`rectZoomHandler: ${centroid.position}`);
+            const p = centroid.position;
+            if (p.x - start.x >= 0) {
+                root.xScaleZoom = 1;
+                rubberBand.width = p.x - start.x;
             } else {
-                if (mouseY - rubberBand.y >= 0) {
-                    root.yScaleZoom = 1;
-                    rubberBand.height = mouseY - rubberBand.y;
-                } else {
-                    root.yScaleZoom = -1;
-                    rubberBand.height = rubberBand.y - mouseY;
-                }
+                root.xScaleZoom = -1;
+                rubberBand.width = start.x - p.x;
             }
-        }
-        onReleased: mouse => {
-            if (panning) {
-                panning = false;
-                return;
-            }
-            // console.debug(`PlotZoom release: ${mouse.buttons}`);
-            rubberBand.visible = false;
-            if (rubberBand.width < 0.05 || rubberBand.height < 0.05) {
-                mouse.accepted = false;
+
+            if (p.y - start.y >= 0) {
+                root.yScaleZoom = 1;
+                rubberBand.height = p.y - start.y;
             } else {
-                // console.debug("zooming...");
-                var x = (mouseX >= rubberBand.x) ? rubberBand.x : mouseX;
-                var y = (mouseY >= rubberBand.y) ? rubberBand.y : mouseY;
-                root.plot.zoomIn(Qt.rect(x, y, rubberBand.width, rubberBand.height));
+                root.yScaleZoom = -1;
+                rubberBand.height = start.y - p.y;
             }
         }
-        onDoubleClicked: {
-            root.plot.autoScale(root.autoScaleMargin);
-        }
+    }
+
+    // --- Auto-scale ---
+    TapHandler {
+        acceptedButtons: Qt.LeftButton
+        onDoubleTapped: root.plot.autoScale(root.autoScaleMargin)
+    }
+
+    // --- Zoom reset ---
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: root.plot.zoomReset()
     }
 
     focus: true

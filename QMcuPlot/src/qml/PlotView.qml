@@ -127,8 +127,6 @@ Rectangle {
 
             radius: 64
 
-            property var overlayPoints: []
-
             Plot {
                 id: plot
                 anchors.fill: parent
@@ -145,7 +143,7 @@ Rectangle {
                     z: 10 // ensures it’s drawn on top of the plot content
 
                     Repeater {
-                        model: wrapper.overlayPoints
+                        model: plot.pointInfos
                         delegate: Item {
                             required property plotPointInfo modelData
 
@@ -178,7 +176,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: wrapper.overlayPoints.length ? "X: " + parseFloat(wrapper.overlayPoints[0].mouseUnitPoint.x.toFixed(2)) : ""
+                    text: plot.pointInfos.length ? "X: " + parseFloat(plot.pointInfos[0].mouseUnitPoint.x.toFixed(2)) : ""
                 }
 
                 Item {
@@ -186,7 +184,7 @@ Rectangle {
                 }
 
                 Repeater {
-                    model: wrapper.overlayPoints
+                    model: plot.pointInfos
                     delegate: Label {
                         required property plotPointInfo modelData
                         text: `${modelData.series.name}: ${parseFloat(modelData.seriesUnitPoint.y.toFixed(2))}`
@@ -235,31 +233,6 @@ Rectangle {
                 id: zoom
                 plot: plot
                 rubberBandColor: Qt.lighter(root.backgroundColor, 7.5)
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                // acceptedButtons: Qt.LeftButton | Qt.RightButton
-                propagateComposedEvents: true
-                hoverEnabled: true
-                function updateOverlay(mouse) {
-                    wrapper.overlayPoints = plot.valuesAt(Qt.point(mouse.x, mouse.y));
-                    // for (let info of wrapper.overlayPoints) {
-                    //     console.debug(`seriesDataPoint: ${info.seriesDataPoint}`);
-                    //     console.debug(`mouseDataPoint: ${info.mouseDataPoint}`);
-                    //     console.debug(`seriesUnitPoint: ${info.seriesUnitPoint}`);
-                    //     console.debug(`mouseUnitPoint: ${info.mouseUnitPoint}`);
-                    //     console.debug(`seriesLocalPoint: ${info.seriesLocalPoint}`);
-                    //     console.debug(`mouseLocalPoint: ${info.mouseLocalPoint}`);
-                    // }
-                }
-                onPositionChanged: mouse => updateOverlay(mouse)
-                onPressed: mouse => {
-                    mouse.accepted = false;
-                }
-                onExited: {
-                    wrapper.overlayPoints = [];
-                }
             }
         }
 

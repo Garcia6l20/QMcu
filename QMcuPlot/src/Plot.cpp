@@ -14,7 +14,8 @@ Plot::Plot(QQuickItem* parent)
     : QQuickFramebufferObject(parent), renderer_(new PlotRenderer(this)), grid_(new PlotGrid(this))
 {
   setMirrorVertically(true);
-  setAcceptedMouseButtons(Qt::AllButtons);
+  // setAcceptedMouseButtons(Qt::AllButtons);
+  setAcceptHoverEvents(true);
   setFlag(ItemHasContents, true);
   QTimer::singleShot(0, [this] { updateAxes(); });
 }
@@ -143,17 +144,24 @@ void Plot::setAxisY(QAbstractAxis* ax)
 void Plot::addSeries(AbstractPlotSeries* s)
 {
   series_.append(s);
+  PlotPointInfo ppi;
+  ppi.series = s;
+  pointInfos_.append(ppi);
   updateAxes();
   update(); // request redraw
   emit seriesChanged();
+  emit pointInfosChanged(pointInfos_);
 }
 
 void Plot::removeSeries(AbstractPlotSeries* s)
 {
-  series_.removeAll(s);
+  const auto index = series_.indexOf(s);
+  series_.removeAt(index);
+  pointInfos_.removeAt(index);
   updateAxes();
   update(); // request redraw
   emit seriesChanged();
+  emit pointInfosChanged(pointInfos_);
 }
 
 void Plot::pan(float x, float y)
@@ -284,51 +292,8 @@ QList<PlotPointInfo> Plot::unitPointsAt(QPointF const& pt)
 
 QList<PlotPointInfo> Plot::valuesAt(QPointF const& pt)
 {
-  QList<PlotPointInfo> result;
-
-  const auto ndc = toNdc_.map(pt);
-  // qDebug(lcPlot) << pt << "=>" << ndc;
-
-  for(auto* s : series_)
-  {
-    if(s->dataProvider())
-    {
-      auto& ctx = s->context();
-
-      const auto ndc_zoomed = ctx.view.transform.inverted().map(ndc);
-      // qDebug(lcPlot) << "ndc_zoomed = " << ndc_zoomed;
-
-      PlotPointInfo ppi;
-      ppi.series          = s;
-      ppi.mouseLocalPoint = pt;
-      // ppi.mouseDataPoint  = ctx.data.fromNdc.map(ndc_zoomed);
-      ppi.mouseDataPoint = ctx.unit.ndcToData.map(ndc_zoomed);
-      ppi.mouseUnitPoint = ctx.unit.fromData.map(ppi.mouseDataPoint);
-      ctx.visitCurrentData(
-          [&]<typename T>(std::span<T> data)
-          {
-            if(data.empty())
-            {
-              return;
-            }
-            const auto index    = std::clamp(int(ppi.mouseDataPoint.x()), 0, int(data.size() - 1));
-            const auto value    = data[index];
-            ppi.seriesDataPoint = {ppi.mouseDataPoint.x(), double(value)};
-            ppi.seriesUnitPoint = ctx.unit.fromData.map(ppi.seriesDataPoint);
-            // const auto seriesZoomedNdcPoint = ctx.data.toNdc.map(ppi.seriesDataPoint);
-            // const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
-            const auto seriesZoomedNdcPoint = ctx.unit.toNdc.map(ppi.seriesUnitPoint);
-            const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
-            ppi.seriesLocalPoint            = fromNdc_.map(seriesNdcPoint);
-            // qDebug(lcPlot).nospace() << "s#" << ii << " qt=" << pt << " ndc=" << ndc
-            //                    << " ndc_zoomed=" << ndc_zoomed << " => data=" <<
-            //                    ppi.seriesDataPoint
-            //                    << " => unit=" << ppi.seriesUnitPoint;
-            result.append(ppi);
-          });
-    }
-  }
-
+  QList<PlotPointInfo> result = pointInfos_;
+  updatePointInfos(pt, result);
   return result;
 }
 
@@ -373,4 +338,65 @@ void Plot::autoScale(int margin)
   }
 
   zoomIn(fromNdc_.mapRect(ndcZoom).adjusted(0, -margin, 0, margin));
+}
+
+void Plot::updatePointInfos(QPointF const& pt, QList<PlotPointInfo> &pis)
+{
+  const auto ndc = toNdc_.map(pt);
+  // qDebug(lcPlot) << pt << "=>" << ndc;
+
+  for(auto& ppi : pis)
+  {
+    auto* s = ppi.series;
+    if(s->dataProvider())
+    {
+      auto& ctx = s->context();
+
+      const auto ndc_zoomed = ctx.view.transform.inverted().map(ndc);
+      // qDebug(lcPlot) << "ndc_zoomed = " << ndc_zoomed;
+
+      ppi.mouseLocalPoint = pt;
+      // ppi.mouseDataPoint  = ctx.data.fromNdc.map(ndc_zoomed);
+      ppi.mouseDataPoint = ctx.unit.ndcToData.map(ndc_zoomed);
+      ppi.mouseUnitPoint = ctx.unit.fromData.map(ppi.mouseDataPoint);
+      ctx.visitCurrentData(
+          [&]<typename T>(std::span<T> data)
+          {
+            if(data.empty())
+            {
+              return;
+            }
+            const auto index    = std::clamp(int(ppi.mouseDataPoint.x()), 0, int(data.size() - 1));
+            const auto value    = data[index];
+            ppi.seriesDataPoint = {ppi.mouseDataPoint.x(), double(value)};
+            ppi.seriesUnitPoint = ctx.unit.fromData.map(ppi.seriesDataPoint);
+            // const auto seriesZoomedNdcPoint = ctx.data.toNdc.map(ppi.seriesDataPoint);
+            // const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
+            const auto seriesZoomedNdcPoint = ctx.unit.toNdc.map(ppi.seriesUnitPoint);
+            const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
+            ppi.seriesLocalPoint            = fromNdc_.map(seriesNdcPoint);
+            // qDebug(lcPlot).nospace() << "s#" << ii << " qt=" << pt << " ndc=" << ndc
+            //                    << " ndc_zoomed=" << ndc_zoomed << " => data=" <<
+            //                    ppi.seriesDataPoint
+            //                    << " => unit=" << ppi.seriesUnitPoint;
+          });
+    }
+  }
+}
+
+void Plot::hoverEnterEvent(QHoverEvent* event)
+{
+  // qDebug(lcPlot) << "Plot::hoverEnterEvent" << event->position();
+}
+
+void Plot::hoverMoveEvent(QHoverEvent* event)
+{
+  // qDebug(lcPlot) << "Plot::hoverMoveEvent" << event->position();
+  updatePointInfos(event->position(), pointInfos_);
+  emit pointInfosChanged(pointInfos_);
+}
+
+void Plot::hoverLeaveEvent(QHoverEvent* event)
+{
+  // qDebug(lcPlot) << "Plot::hoverLeaveEvent" << event->position();
 }

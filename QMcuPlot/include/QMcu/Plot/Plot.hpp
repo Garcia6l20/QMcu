@@ -55,17 +55,72 @@ class Plot : public QQuickFramebufferObject
   Q_PROPERTY(QAbstractAxis* axisX READ axisX WRITE setAxisX NOTIFY axesChanged)
   Q_PROPERTY(QAbstractAxis* axisY READ axisY WRITE setAxisY NOTIFY axesChanged)
 
+  Q_PROPERTY(QList<PlotPointInfo> pointInfos READ pointInfos NOTIFY pointInfosChanged)
+
 public:
   Plot(QQuickItem* parent = nullptr);
   ~Plot() override;
 
   Renderer* createRenderer() const override;
 
-  Q_INVOKABLE void                           addSeries(AbstractPlotSeries* s);
-  Q_INVOKABLE void                           removeSeries(AbstractPlotSeries* s);
+  Q_INVOKABLE void addSeries(AbstractPlotSeries* s);
+  Q_INVOKABLE void removeSeries(AbstractPlotSeries* s);
+
   const QQmlListProperty<AbstractPlotSeries> series()
   {
-    return QQmlListProperty<AbstractPlotSeries>(this, &series_);
+    return QQmlListProperty<AbstractPlotSeries>(
+        this,
+        this,
+        [](QQmlListProperty<AbstractPlotSeries>* lp, AbstractPlotSeries* s)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          self.addSeries(s);
+        },
+        [](QQmlListProperty<AbstractPlotSeries>* lp)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          return self.series_.size();
+        },
+        [](QQmlListProperty<AbstractPlotSeries>* lp, qsizetype ii)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          return self.series_.at(ii);
+        },
+        [](QQmlListProperty<AbstractPlotSeries>* lp)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          self.series_.clear();
+          self.pointInfos_.clear();
+          self.updateAxes();
+          self.update(); // request redraw
+          emit self.seriesChanged();
+          emit self.pointInfosChanged(self.pointInfos_);
+        },
+        [](QQmlListProperty<AbstractPlotSeries>* lp, qsizetype ii, AbstractPlotSeries* s)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          self.series_.replace(ii, s);
+          self.pointInfos_[ii].series = s;
+          self.updateAxes();
+          self.update(); // request redraw
+          emit self.seriesChanged();
+          emit self.pointInfosChanged(self.pointInfos_);
+        },
+        [](QQmlListProperty<AbstractPlotSeries>* lp)
+        {
+          auto& self = *static_cast<Plot*>(lp->object);
+          self.series_.removeLast();
+          self.pointInfos_.removeLast();
+          self.updateAxes();
+          self.update(); // request redraw
+          emit self.seriesChanged();
+          emit self.pointInfosChanged(self.pointInfos_);
+        });
+  }
+
+  const QList<PlotPointInfo>& pointInfos() const noexcept
+  {
+    return pointInfos_;
   }
 
   QAbstractAxis* axisX() const noexcept
@@ -109,6 +164,7 @@ signals:
   void seriesChanged();
   void axesChanged(QAbstractAxis* x, QAbstractAxis* y);
   void transformsChanged();
+  void pointInfosChanged(QList<PlotPointInfo> const&);
 
 protected:
   static void appendSeries(QQmlListProperty<AbstractPlotSeries>* prop, AbstractPlotSeries* series)
@@ -123,12 +179,19 @@ protected:
 
   void updateAxes();
 
+  void updatePointInfos(QPointF const& pt, QList<PlotPointInfo> &pis);
+
+  void hoverEnterEvent(QHoverEvent* event) override;
+  void hoverMoveEvent(QHoverEvent* event) override;
+  void hoverLeaveEvent(QHoverEvent* event) override;
+
 private:
   friend PlotRenderer;
 
   PlotRenderer*              renderer_;
   PlotGrid*                  grid_;
   QList<AbstractPlotSeries*> series_;
+  QList<PlotPointInfo>       pointInfos_;
   QAbstractAxis*             axisX_ = nullptr;
   QAbstractAxis*             axisY_ = nullptr;
   QMatrix4x4                 toNdc_;
