@@ -1,19 +1,19 @@
 #include <QMcu/Plot/AbstractPlotSeries.hpp>
 #include <QMcu/Plot/Plot.hpp>
 #include <QMcu/Plot/PlotGrid.hpp>
-#include <QMcu/Plot/PlotRenderer.hpp>
+#include <QMcu/Plot/PlotScene.hpp>
 
 #include <Logging.hpp>
 
+#include <QQuickWindow>
 #include <QTimer>
 #include <QValueAxis>
 
 #include <ranges>
 
-Plot::Plot(QQuickItem* parent)
-    : QQuickFramebufferObject(parent), renderer_(new PlotRenderer(this)), grid_(new PlotGrid(this))
+Plot::Plot(QQuickItem* parent) : QQuickItem(parent), grid_(new PlotGrid(this))
 {
-  setMirrorVertically(true);
+  // setMirrorVertically(true);
   // setAcceptedMouseButtons(Qt::AllButtons);
   setAcceptHoverEvents(true);
   setFlag(ItemHasContents, true);
@@ -22,17 +22,35 @@ Plot::Plot(QQuickItem* parent)
 
 Plot::~Plot() = default;
 
+QSGNode* Plot::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
+{
+  PlotScene* node = static_cast<PlotScene*>(old);
+  if(not node)
+  {
+    node = renderer_ = new PlotScene(window());
+    renderer_->setBorder(border_);
+    renderer_->setRadius(radius_);
+    renderer_->addRenderer(grid_);
+    for(auto* s : series_)
+    {
+      renderer_->addRenderer(s);
+    }
+  }
+  node->setBoundingRect(mapRectToScene(boundingRect()));
+  return node;
+}
+
 void Plot::componentComplete()
 {
-  QQuickFramebufferObject::componentComplete();
+  QQuickItem::componentComplete();
 
   for(auto const& series :
-      children() |
-          std::views::filter(
+      children()
+          | std::views::filter(
               [this](QObject* item)
-              { return item != grid_ && qobject_cast<AbstractPlotSeries*>(item) != nullptr; }) |
-          std::views::transform([](QObject* item)
-                                { return qobject_cast<AbstractPlotSeries*>(item); }))
+              { return item != grid_ && qobject_cast<AbstractPlotSeries*>(item) != nullptr; })
+          | std::views::transform([](QObject* item)
+                                  { return qobject_cast<AbstractPlotSeries*>(item); }))
   {
     addSeries(series);
   }
@@ -40,7 +58,7 @@ void Plot::componentComplete()
 
 void Plot::itemChange(ItemChange change, const ItemChangeData& data)
 {
-  QQuickFramebufferObject::itemChange(change, data);
+  QQuickItem::itemChange(change, data);
   switch(change)
   {
     case ItemChange::ItemChildAddedChange:
@@ -58,11 +76,6 @@ void Plot::itemChange(ItemChange change, const ItemChangeData& data)
     default:
       break;
   }
-}
-
-QQuickFramebufferObject::Renderer* Plot::createRenderer() const
-{
-  return renderer_;
 }
 
 void Plot::draw()
@@ -147,6 +160,10 @@ void Plot::addSeries(AbstractPlotSeries* s)
   PlotPointInfo ppi;
   ppi.series = s;
   pointInfos_.append(ppi);
+  if(renderer_)
+  {
+    renderer_->addRenderer(s);
+  }
   updateAxes();
   update(); // request redraw
   emit seriesChanged();
@@ -158,6 +175,10 @@ void Plot::removeSeries(AbstractPlotSeries* s)
   const auto index = series_.indexOf(s);
   series_.removeAt(index);
   pointInfos_.removeAt(index);
+  if(renderer_)
+  {
+    renderer_->removeRenderer(s);
+  }
   updateAxes();
   update(); // request redraw
   emit seriesChanged();
@@ -340,7 +361,7 @@ void Plot::autoScale(int margin)
   zoomIn(fromNdc_.mapRect(ndcZoom).adjusted(0, -margin, 0, margin));
 }
 
-void Plot::updatePointInfos(QPointF const& pt, QList<PlotPointInfo> &pis)
+void Plot::updatePointInfos(QPointF const& pt, QList<PlotPointInfo>& pis)
 {
   const auto ndc = toNdc_.map(pt);
   // qDebug(lcPlot) << pt << "=>" << ndc;

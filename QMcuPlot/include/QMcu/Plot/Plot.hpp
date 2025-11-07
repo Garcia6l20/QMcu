@@ -44,7 +44,7 @@ public:
 };
 Q_DECLARE_METATYPE(PlotPointInfo)
 
-class Plot : public QQuickFramebufferObject
+class Plot : public QQuickItem
 {
   Q_OBJECT
   QML_ELEMENT
@@ -57,11 +57,12 @@ class Plot : public QQuickFramebufferObject
 
   Q_PROPERTY(QList<PlotPointInfo> pointInfos READ pointInfos NOTIFY pointInfosChanged)
 
+  Q_PROPERTY(float border WRITE setBorder)
+  Q_PROPERTY(float radius WRITE setRadius)
+
 public:
   Plot(QQuickItem* parent = nullptr);
   ~Plot() override;
-
-  Renderer* createRenderer() const override;
 
   Q_INVOKABLE void addSeries(AbstractPlotSeries* s);
   Q_INVOKABLE void removeSeries(AbstractPlotSeries* s);
@@ -158,9 +159,17 @@ public slots:
 
   Q_INVOKABLE void autoScale(int margin = 16);
 
+  void setBorder(float border) noexcept
+  {
+    border_ = border;
+  }
+
+  void setRadius(float radius) noexcept
+  {
+    radius_ = radius;
+  }
+
 signals:
-  void beforeRender();
-  void afterRender();
   void seriesChanged();
   void axesChanged(QAbstractAxis* x, QAbstractAxis* y);
   void transformsChanged();
@@ -179,21 +188,26 @@ protected:
 
   void updateAxes();
 
-  void updatePointInfos(QPointF const& pt, QList<PlotPointInfo> &pis);
+  void updatePointInfos(QPointF const& pt, QList<PlotPointInfo>& pis);
 
   void hoverEnterEvent(QHoverEvent* event) override;
   void hoverMoveEvent(QHoverEvent* event) override;
   void hoverLeaveEvent(QHoverEvent* event) override;
 
-private:
-  friend PlotRenderer;
+  QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData*) final;
 
-  PlotRenderer*              renderer_;
-  PlotGrid*                  grid_;
-  QList<AbstractPlotSeries*> series_;
-  QList<PlotPointInfo>       pointInfos_;
+private:
+  friend PlotScene;
+
+  PlotScene* renderer_ = nullptr;
+
+  PlotGrid*                  grid_  = nullptr;
   QAbstractAxis*             axisX_ = nullptr;
   QAbstractAxis*             axisY_ = nullptr;
-  QMatrix4x4                 toNdc_;
-  QMatrix4x4                 fromNdc_;
+  QList<AbstractPlotSeries*> series_{};
+  QList<PlotPointInfo>       pointInfos_{};
+  QMatrix4x4                 toNdc_{};
+  QMatrix4x4                 fromNdc_{};
+  float                      border_ = 0.0f;
+  float                      radius_ = 0.0f;
 };

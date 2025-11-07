@@ -4,13 +4,13 @@
 #include <QtQmlIntegration>
 
 #include <QMcu/Plot/AbstractPlotDataProvider.hpp>
-#include <QMcu/Plot/BasicRenderer.hpp>
 #include <QMcu/Plot/PlotContext.hpp>
+#include <QMcu/Plot/PlotSceneItem.hpp>
 
 #include <QAbstractAxis>
 
 class Plot;
-class PlotRenderer;
+class PlotScene;
 class PlotContext;
 class AbstractPlotDataProvider;
 
@@ -33,10 +33,10 @@ static inline QMatrix4x4 rectTransform(const QRectF& src, const QRectF& dst)
   return m;
 }
 
-class AbstractPlotSeries : public BasicRenderer
+class AbstractPlotSeries : public PlotSceneItem
 {
   friend Plot;
-  friend PlotRenderer;
+  friend PlotScene;
   friend PlotContext;
   friend AbstractPlotDataProvider;
 
@@ -121,8 +121,9 @@ protected:
   {
     return ctx_;
   }
+  void releaseResources() override;
 
-  void* createMappedBuffer(glsl::TypeId type, size_t count, GLuint bufferType, GLuint binding = 0);
+  void* createMappedBuffer(qplot::TypeId type, size_t count, vk::BufferUsageFlagBits usage);
 
   auto initializeDataProvider()
   {

@@ -10,7 +10,7 @@
 
 #include <QColor>
 
-class LinePlotSeries : public AbstractPlotSeries
+class PlotLineSeries : public AbstractPlotSeries
 {
   friend PlotContext;
   friend AbstractPlotDataProvider;
@@ -32,8 +32,8 @@ public:
   };
   Q_ENUM(LineStyle)
 
-  explicit LinePlotSeries(QObject* parent = nullptr);
-  virtual ~LinePlotSeries();
+  explicit PlotLineSeries(QObject* parent = nullptr);
+  virtual ~PlotLineSeries();
 
   QColor const& lineColor() const noexcept
   {
@@ -98,15 +98,53 @@ signals:
   void lineStyleChanged(LineStyle);
 
 protected:
-  bool allocateGL(QSize const& viewport) final;
+  bool initialize() final;
   void draw() final;
+  void releaseResources() final;
 
 private:
-  std::string generateShaderSource(PlotContext& ctx);
+  void updateMetadata();
 
-  std::unique_ptr<QOpenGLShaderProgram> program_;
-  QColor                                lineColor_ = Qt::red;
-  float                                 thickness_ = 7 / 100.0f;
-  float                                 glow_      = 1 / 100.0f;
-  LineStyle                             lineStyle_ = LineStyle::Basic;
+  struct UBO
+  {
+    glm::mat4 mvp;
+
+    glm::mat4 dataToNdc;     // data -> NDC
+    glm::mat4 viewTransform; // zoom & pan in NDC space
+
+    glm::vec4 color; // base color
+
+    glm::vec2 boundingSize;
+
+    float thickness;
+    float glow;
+
+    glm::uint byteCount;    // byte count
+    glm::uint byteOffset;   // byte offset
+    glm::uint sampleStride; // sample stride
+
+    glm::uint tid;
+  } ubo;
+
+  QColor    lineColor_ = Qt::red;
+  float     thickness_ = 7 / 100.0f;
+  float     glow_      = 1 / 100.0f;
+  LineStyle lineStyle_ = LineStyle::Basic;
+
+  vk::Pipeline       pipeline_       = nullptr;
+  vk::PipelineCache  pipelineCache_  = nullptr;
+  vk::PipelineLayout pipelineLayout_ = nullptr;
+
+  vk::Buffer       ubuf_    = nullptr;
+  vk::DeviceMemory ubufMem_ = nullptr;
+
+  vk::DescriptorSetLayout uniformsSetLayout_;
+  vk::DescriptorSetLayout dataSetLayout_;
+
+  vk::DescriptorPool descriptorPool_{};
+  // vk::DescriptorSet  descriptorSets_[2]{};
+  vk::DescriptorSet ubufDescriptor_{};// = descriptorSets_[0];
+  vk::DescriptorSet sbufDescriptor_{};// = descriptorSets_[1];
+
+  size_t allocPerUbuf_ = 0;
 };

@@ -121,81 +121,97 @@ Rectangle {
             Layout.bottomMargin: 4
             Layout.leftMargin: 4
 
-            // enable layering to allow masking
-            layer.enabled: true
-            layer.smooth: true
-
             radius: 64
 
             Plot {
                 id: plot
                 anchors.fill: parent
 
-                // enable layering to allow masking
-                layer.enabled: true
-                layer.smooth: true
+                // Now clipping along border and radius is done internally with a stencil mask, no more layering
+                radius: parent.radius
+                border: parent.border.width
 
                 grid.color: Qt.darker(root.primary, 1.5)
-
-                Rectangle {
-                    id: overlay
-                    anchors.fill: parent
-                    z: 10 // ensures it’s drawn on top of the plot content
-
-                    Repeater {
-                        model: plot.pointInfos
-                        delegate: Item {
-                            required property plotPointInfo modelData
-
-                            x: modelData.seriesLocalPoint.x
-                            y: modelData.seriesLocalPoint.y
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                radius: 4
-                                width: 2 * radius
-                                height: 2 * radius
-                                border.color: Qt.darker(parent.modelData.series.lineColor, 4)
-                                border.width: 1
-                                color: Qt.darker(parent.modelData.series.lineColor, 2)
-                            }
-                        }
-                    }
-                }
             }
 
-            RowLayout {
-                id: infos
-                anchors.bottom: wrapper.bottom
-                anchors.bottomMargin: 4
-                width: wrapper.width
-                spacing: 8
+            Rectangle {
+                id: overlay
+                anchors.fill: parent
+                z: 10 // ensures it’s drawn on top of the plot content
+                color: "transparent"
 
-                Item {
-                    width: wrapper.radius
-                }
-
-                Label {
-                    text: plot.pointInfos.length ? "X: " + parseFloat(plot.pointInfos[0].mouseUnitPoint.x.toFixed(2)) : ""
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
+                layer.enabled: true
 
                 Repeater {
                     model: plot.pointInfos
-                    delegate: Label {
+                    delegate: Item {
                         required property plotPointInfo modelData
-                        text: `${modelData.series.name}: ${parseFloat(modelData.seriesUnitPoint.y.toFixed(2))}`
-                        color: modelData.series.lineColor
+
+                        x: modelData.seriesLocalPoint.x
+                        y: modelData.seriesLocalPoint.y
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            radius: 4
+                            width: 2 * radius
+                            height: 2 * radius
+                            border.color: Qt.darker(parent.modelData.series.lineColor, 4)
+                            border.width: 1
+                            color: Qt.darker(parent.modelData.series.lineColor, 2)
+                        }
                     }
                 }
 
-                Item {
-                    width: wrapper.radius
+                RowLayout {
+                    id: infos
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 4
+                    width: wrapper.width
+                    spacing: 8
+
+                    Item {
+                        width: wrapper.radius
+                    }
+
+                    Label {
+                        text: plot.pointInfos.length ? "X: " + parseFloat(plot.pointInfos[0].mouseUnitPoint.x.toFixed(2)) : ""
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Repeater {
+                        model: plot.pointInfos
+                        delegate: Label {
+                            required property plotPointInfo modelData
+                            text: `${modelData.series.name}: ${parseFloat(modelData.seriesUnitPoint.y.toFixed(2))}`
+                            color: modelData.series.lineColor
+                        }
+                    }
+
+                    Item {
+                        width: wrapper.radius
+                    }
                 }
             }
+
+            // clip plot overlay content into its wrapper bounds
+            Rectangle {
+                id: rectMask
+                // TODO: border and radius not handled by shader
+                radius: wrapper.radius
+                anchors.fill: parent
+                anchors.margins: wrapper.border.width
+                visible: false
+                layer.enabled: true
+                layer.samplerName: "maskSource"
+                layer.effect: ShaderEffect {
+                    property variant source: overlay
+                    fragmentShader: "/qmcu/plot/qt-shaders/opacitymask.frag.qsb"
+                }
+            }
+
             // apply shadow on wrapper
             // MultiEffect {
             //     source: wrapper
@@ -211,23 +227,6 @@ Rectangle {
             //     contrast: 1.3
             //     saturation: 1.1
             // }
-            // clip plot content into its wrapper bound
-            MultiEffect {
-                source: plot
-                anchors.fill: wrapper
-                maskEnabled: true
-                maskSource: wrapper
-                // maskSource: Rectangle {
-                //     anchors.fill: wrapper
-                //     anchors.centerIn: wrapper
-                //     radius: wrapper.radius
-                //     layer.enabled: true
-                //     visible: false
-                //     color: "black"
-                // }
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 1.0
-            }
 
             PlotZoom {
                 id: zoom

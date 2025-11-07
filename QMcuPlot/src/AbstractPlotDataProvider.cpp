@@ -1,10 +1,9 @@
 #include <QMcu/Plot/AbstractPlotDataProvider.hpp>
 #include <QMcu/Plot/AbstractPlotSeries.hpp>
 
-void* AbstractPlotDataProvider::createMappedBuffer(glsl::TypeId tid,
-                                                   size_t     count,
-                                                   GLuint     bufferType,
-                                                   GLuint     binding)
+void* AbstractPlotDataProvider::createMappedBuffer(qplot::TypeId           tid,
+                                                   size_t                  count,
+                                                   vk::BufferUsageFlagBits usage)
 {
-  return series_->createMappedBuffer(tid, count, bufferType, binding);
+  return series_->createMappedBuffer(tid, count, usage);
 }

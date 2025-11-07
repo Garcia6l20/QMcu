@@ -1,16 +1,14 @@
 #pragma once
 
-#include <QMcu/Plot/BasicRenderer.hpp>
+#include <QMcu/Plot/PlotSceneItem.hpp>
 
 #include <QColor>
-#include <QOpenGLShaderProgram>
 
-class PlotRenderer;
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
 
-class PlotGrid : public BasicRenderer
+class PlotGrid : public PlotSceneItem
 {
-  friend PlotRenderer;
-
   Q_OBJECT
 
   Q_PROPERTY(uint32_t ticks READ ticks WRITE setTicks NOTIFY ticksChanged)
@@ -21,7 +19,7 @@ public:
 
   uint32_t ticks() const noexcept
   {
-    return ticks_;
+    return push_.ticks;
   }
 
   QColor const& color() const noexcept
@@ -32,11 +30,11 @@ public:
 public slots:
   void setTicks(uint32_t ticks)
   {
-    if(ticks != ticks_)
+    if(ticks != push_.ticks)
     {
-      ticks_ = ticks;
+      push_.ticks = ticks;
       setDirty();
-      emit ticksChanged(ticks_);
+      emit ticksChanged(push_.ticks);
     }
   }
 
@@ -44,7 +42,8 @@ public slots:
   {
     if(color != color_)
     {
-      color_ = color;
+      color_      = color;
+      push_.color = glm::vec4{color_.redF(), color_.greenF(), color_.blueF(), color_.alphaF()};
       setDirty();
       emit colorChanged(color_);
     }
@@ -55,13 +54,24 @@ signals:
   void colorChanged(QColor const&);
 
 protected:
-  bool allocateGL(QSize const& viewport) final;
+  bool initialize() final;
   void draw() final;
+  void releaseResources() final;
 
 private:
-  std::unique_ptr<QOpenGLShaderProgram> compute_;
-  std::unique_ptr<QOpenGLShaderProgram> program_;
-  uint32_t                              ticks_    = 5;
-  QColor                                color_    = Qt::GlobalColor::lightGray;
-  GLuint                                glHandle_ = 0;
+  QColor color_ = Qt::GlobalColor::lightGray;
+
+  struct GridPush
+  {
+    glm::mat4 mvp;
+    glm::vec4 color{0.5f, 0.5f, 0.5f, 0.7f};
+    glm::vec2 boundingSize;
+    uint32_t  ticks = 5;
+    uint32_t  dash  = 12;
+    uint32_t  gap   = 4;
+  } push_;
+
+  vk::Pipeline       pipeline_;
+  vk::PipelineCache  pipelineCache_;
+  vk::PipelineLayout pipelineLayout_;
 };

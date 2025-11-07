@@ -1,14 +1,13 @@
 #pragma once
 
-#include <QMcu/Plot/GL/Types.hpp>
+#include <QMcu/Plot/VK/Types.hpp>
+#include <QMcu/Plot/VK/VulkanContext.hpp>
 
 #include <QMatrix4x4>
 #include <QPointF>
 #include <QRectF>
 #include <QSize>
 #include <QTransform>
-
-#include <functional>
 
 template <typename DstT, typename SrcT>
 inline constexpr std::span<DstT> span_cast(std::span<SrcT> src)
@@ -106,19 +105,34 @@ struct PlotContext
       return current_byte_offset() / elem_size;
     }
 
-    std::span<std::byte>  _range;
-    std::span<std::byte>  _current_range;
-    GLuint                _gl_handle = 0;
-    GLuint                _gl_type;
-    std::function<void()> _glVertexAttribPointer;
+    std::span<std::byte> _range;
+    std::span<std::byte> _current_range;
+    vk::Buffer           _buffer    = nullptr;
+    vk::DeviceMemory     _bufferMem = nullptr;
+
+    void releaseResources(vk::Device& dev)
+    {
+      if(_bufferMem)
+      {
+        dev.unmapMemory(_bufferMem);
+        dev.free(_bufferMem);
+        _bufferMem = nullptr;
+      }
+      if(_buffer != nullptr)
+      {
+        dev.destroy(_buffer);
+        _buffer = nullptr;
+      }
+    }
+
   } vbo;
 
-  template <typename Fn> void visitType(Fn&& fn)
+  template <bool fatal, typename Fn> void visitType(Fn&& fn)
   {
     if(false)
     {
     }
-#define X(__type, __qt_type, __gl_type)                           \
+#define X(__type, __qt_type)                                      \
   else if(data.type == __qt_type)                                 \
   {                                                               \
     std::forward<decltype(fn)>(fn).template operator()<__type>(); \
@@ -127,8 +141,15 @@ struct PlotContext
 #undef X
     else
     {
-      // std::abort(); // No op
+      if constexpr(fatal)
+      {
+        std::abort(); // No op
+      }
     }
+  }
+  template <typename Fn> void visitType(Fn&& fn)
+  {
+    visitType<false>(std::forward<decltype(fn)>(fn));
   }
 
   template <typename Fn> void visitCurrentData(Fn&& fn)

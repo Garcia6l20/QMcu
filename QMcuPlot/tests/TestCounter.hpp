@@ -12,7 +12,7 @@ class TestCounter : public AbstractPlotDataProvider
   Q_OBJECT
   QML_ELEMENT
 
-  using base_type = int32_t;
+  using base_type = float;
 
   Q_PROPERTY(int initial MEMBER initial_)
   Q_PROPERTY(int low MEMBER low_)

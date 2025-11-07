@@ -31,26 +31,26 @@ void ScrollPlotProvider::pushLastValue()
     return;
   }
 
-  glsl::visitQtType(QMetaType::Type(lastValue_.typeId()),
-                    [&]<typename T>
-                    {
-                      auto       data  = std::span(reinterpret_cast<T*>(mappedData_.data()),
-                                            mappedData_.size_bytes() / sizeof(T));
-                      const auto value = lastValue_.value<T>();
-                      readIndex_       = currentOffset_;
+  qplot::visitQtType(QMetaType::Type(lastValue_.typeId()),
+                     [&]<typename T>
+                     {
+                       auto       data  = std::span(reinterpret_cast<T*>(mappedData_.data()),
+                                             mappedData_.size_bytes() / sizeof(T));
+                       const auto value = lastValue_.value<T>();
+                       readIndex_       = currentOffset_;
 
-                      const auto index           = (sampleCount_ + currentOffset_) % sampleCount_;
-                      data[index]                = value;
-                      data[index + sampleCount_] = value;
+                       const auto index           = (sampleCount_ + currentOffset_) % sampleCount_;
+                       data[index]                = value;
+                       data[index + sampleCount_] = value;
 
-                      ++currentOffset_;
-                      if(currentOffset_ >= sampleCount_)
-                      {
-                        currentOffset_ = 0;
-                      }
+                       ++currentOffset_;
+                       if(currentOffset_ >= sampleCount_)
+                       {
+                         currentOffset_ = 0;
+                       }
 
-                      dataChanged();
-                    });
+                       dataChanged();
+                     });
 }
 
 void ScrollPlotProvider::onValueChanged()
@@ -88,11 +88,11 @@ bool ScrollPlotProvider::initializePlotContext(PlotContext& ctx)
 ScrollPlotProvider::UpdateRange ScrollPlotProvider::update(PlotContext& ctx)
 {
   auto val = proxy()->value();
-  return glsl::visitQtType(QMetaType::Type(val.typeId()),
-                           [&]<typename T>
-                           {
-                             const auto data = std::span(reinterpret_cast<T*>(mappedData_.data()),
-                                                         mappedData_.size_bytes() / sizeof(T));
-                             return std::as_bytes(data.subspan(currentOffset_, sampleCount_));
-                           });
+  return qplot::visitQtType(QMetaType::Type(val.typeId()),
+                            [&]<typename T>
+                            {
+                              const auto data = std::span(reinterpret_cast<T*>(mappedData_.data()),
+                                                          mappedData_.size_bytes() / sizeof(T));
+                              return std::as_bytes(data.subspan(currentOffset_, sampleCount_));
+                            });
 }

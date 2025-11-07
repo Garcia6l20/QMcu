@@ -8,13 +8,13 @@ It provides real-time access to target variables (via ST-Link or similar probes)
 ### 🧩 Modular Architecture
 Split into independent components:
  - QMcu::Debug — provides direct access to MCU variables, symbol resolution, and memory probing.
- - QMcu::Plot — high-performance OpenGL plotting engine designed for real-time data visualization in QML.
+ - QMcu::Plot — high-performance Vulkan plotting engine designed for real-time data visualization in QML.
 
 ### 🔍 Live Variable Monitoring
 Use VariableProxy and VariableProxyGroup to read and update variables from an ELF image over an ST-Link probe — no firmware modification needed.
 
 ### 📈 Real-time plotting
-Smoothly render MCU signals using PlotView and LinePlotSeries, with customizable colors, axes, and grid layouts.
+Smoothly render MCU signals using PlotView and PlotLineSeries, with customizable colors, axes, and grid layouts.
 
 ### ⚙️ QML-native integration
 The entire API is exposed to QML, allowing reactive and declarative dashboards for embedded systems.
@@ -65,7 +65,7 @@ ApplicationWindow {
         axisX: ValueAxis { min: 0; max: 200 }
         axisY: ValueAxis { min: -1.3; max: 6.3 }
 
-        LinePlotSeries {
+        PlotLineSeries {
             name: "VBus"
             lineColor: "cyan"
 
@@ -118,6 +118,8 @@ sudo cmake --workflow --preset release-install
 ## 📈 Screenshots
 
 ![Signals plot](screenshots/signals-plot.png "The test-signal application.")
+
+![ADC plot](screenshots/adc.png "Custom ADC plot from STM32U475 target.")
 
 ## 📄 License
 [MIT License](LICENSE).

@@ -11,7 +11,7 @@ include(CPM)
 
 find_package(lldb REQUIRED)
 find_package(stlink REQUIRED)
-find_package(Qt6 COMPONENTS Core Quick Qml Charts)
+find_package(Qt6 COMPONENTS Core Quick Qml Charts ShaderTools REQUIRED)
 
 if(NOT TARGET Qt6::Widgets)
   message(STATUS "QMcuWatch disabled (missing: Qt6::Gui)")

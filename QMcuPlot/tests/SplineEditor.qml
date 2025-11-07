@@ -87,6 +87,18 @@ ApplicationWindow {
         }
     }
 
+    function updateTicks() {
+        for (let ii = 3; ii < nOutputData.value; ++ii) {
+            const n = nOutputData.value / ii;
+            if (Math.floor(n) == n) {
+                axisX.tickCount = ii;
+                axisX.minorTickCount = n;
+                console.debug(`Ticks: ${axisX.tickCount}/${axisX.minorTickCount}`);
+                break;
+            }
+        }
+    }
+
     header: RowLayout {
         RowLayout {
             Label {
@@ -97,7 +109,10 @@ ApplicationWindow {
                 from: 3
                 to: 1024 * 10
                 value: 32
-                onValueChanged: chartView.updateSeries()
+                onValueChanged: {
+                    root.updateTicks();
+                    chartView.updateSeries();
+                }
             }
         }
         Button {
@@ -174,33 +189,44 @@ ApplicationWindow {
                 style: Qt.DashLine
             }
 
-            function updateSeries() {
-                splineSeries.clear();
-                for (var i = 0; i < root.points.length; i++)
-                    splineSeries.append(root.points[i].x, root.points[i].y);
+            Timer {
+                id: updateDelay
+                interval: 250
+                onTriggered: {
+                    splineSeries.clear();
+                    for (var i = 0; i < root.points.length; i++)
+                        splineSeries.append(root.points[i].x, root.points[i].y);
 
-                pointsSeries.clear();
-                for (var i = 0; i < root.points.length; i++)
-                    pointsSeries.append(root.points[i].x, root.points[i].y);
+                    pointsSeries.clear();
+                    for (var i = 0; i < root.points.length; i++)
+                        pointsSeries.append(root.points[i].x, root.points[i].y);
 
-                controlSeries.clear();
-                for (var i = 0; i < ci.controlPoints.length; i++)
-                    controlSeries.append(ci.controlPoints[i].x, ci.controlPoints[i].y);
+                    controlSeries.clear();
+                    for (var i = 0; i < ci.controlPoints.length; i++)
+                        controlSeries.append(ci.controlPoints[i].x, ci.controlPoints[i].y);
 
-                outputSeries.clear();
+                    outputSeries.clear();
 
-                let x = [];
-                for (let ii = 0; ii < nOutputData.value; ++ii) {
-                    x.push(ii / (nOutputData.value - 1));
+                    let x = [];
+                    for (let ii = 0; ii < nOutputData.value; ++ii) {
+                        x.push(ii / (nOutputData.value - 1));
+                    }
+                    const y = ci.eval(x);
+                    for (var i = 0; i < y.length; i++)
+                        outputSeries.append(x[i], y[i]);
+
+                    outputText.text = JSON.stringify(y, null, 1);
                 }
-                const y = ci.eval(x);
-                for (var i = 0; i < y.length; i++)
-                    outputSeries.append(x[i], y[i]);
-
-                outputText.text = JSON.stringify(y, null, 1);
             }
 
-            Component.onCompleted: chartView.updateSeries()
+            function updateSeries() {
+                updateDelay.start();
+            }
+
+            Component.onCompleted: {
+                root.updateTicks();
+                chartView.updateSeries();
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -234,7 +260,7 @@ ApplicationWindow {
                         }
                         console.debug(`selecting: ${closest}`);
                         root.selectedIndex = closest;
-                        focus = true
+                        focus = true;
                         dragging = true;
                     }
                 }

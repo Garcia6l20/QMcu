@@ -1,13 +1,15 @@
-link_libraries(QMcuPlot)
+link_libraries(QMcuPlot Qt::GuiPrivate)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
+# add_compile_options(-fsanitize=address)
+# add_link_options(-fsanitize=address)
 
 add_library(QPlotTest
   TestCounter.hpp
   TestSignal.hpp
+  rhiwindow.cpp
+  rhiwindow.h
 )
 
 qt_add_qml_module(QPlotTest
@@ -19,6 +21,7 @@ qt_add_qml_module(QPlotTest
     TestDial.qml
     TestCounterApp.qml
     TestSignalApp.qml
+    TestGridApp.qml
   OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QPlotTest
 )
 
@@ -36,9 +39,12 @@ endmacro()
 add_test_app(spline-editor SplineEditor)
 add_test_app(test-counter TestCounterApp)
 add_test_app(test-signal TestSignalApp)
+add_test_app(test-grid TestGridApp)
 
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Test)
 
 add_executable(plot-test-scaling test-scaling.cpp)
 target_link_libraries(plot-test-scaling PRIVATE Qt6::Gui Qt6::Test)
+
+add_subdirectory(vulkan)

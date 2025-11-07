@@ -3,137 +3,165 @@
 #include <Logging.hpp>
 
 #include <QColor>
+#include <QFile>
+
+#include <glm/vec4.hpp>
+
+#include <ranges>
 
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
-PlotGrid::PlotGrid(QObject* parent) : BasicRenderer{parent}
+#include <magic_enum/magic_enum.hpp>
+
+PlotGrid::PlotGrid(QObject* parent) : PlotSceneItem{parent}
 {
 }
 
-bool PlotGrid::allocateGL(QSize const& viewport)
+QByteArray getShader(QString const& filename)
 {
-  initializeOpenGLFunctions();
+  QFile f(QString(":/qmcu/plot/shaders/%1").arg(filename));
+  if(!f.open(QIODevice::ReadOnly))
+  {
+    qFatal("Failed to read shader %s", qPrintable(filename));
+  }
 
-  // glEnable(GL_DEBUG_OUTPUT);
-  // glDebugMessageCallback([](GLenum        source,
-  //                           GLenum        type,
-  //                           GLuint        id,
-  //                           GLenum        severity,
-  //                           GLsizei       length,
-  //                           const GLchar* message,
-  //                           const void*   userParam) { qDebug() << "GL debug:" << message; },
-  //                        nullptr);
-
-  compute_ = std::make_unique<QOpenGLShaderProgram>();
-  if(!compute_->addShaderFromSourceCode(QOpenGLShader::Compute,
-                                        R"GLSL(#version 450 core
-layout(local_size_x = 1) in;
-
-layout(std430, binding = 0) buffer VertexBuffer {
-    vec4 vertices[];
-};
-
-uniform uint u_ticks;
-
-void main() {
-    const uint idx = gl_GlobalInvocationID.x;
-
-    if(idx >= u_ticks) return;
-
-    // space ticks evenly between -1 and +1 (excluded)
-    const float step = 2.0 / float(u_ticks + 1u);
-    const float ratio = -1.0 + step * float(idx + 1u);
-
-    // horizontal line
-    vertices[idx * 4 + 0] = vec4(ratio, -1.0, 0.0, 1.0);
-    vertices[idx * 4 + 1] = vec4(ratio,  1.0, 0.0, 1.0);
-
-    // vertical line
-    vertices[idx * 4 + 2] = vec4(-1.0, ratio, 0.0, 1.0);
-    vertices[idx * 4 + 3] = vec4( 1.0, ratio, 0.0, 1.0);
+  return f.readAll();
 }
-)GLSL"))
+
+bool PlotGrid::initialize()
+{
+  auto& vk = vkContext();
+
+  Q_ASSERT(vk.framesInFlight <= 3);
+
+  pipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
+
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
+
+  auto vertShaderModule = vk.createShaderModule("grid.vert.spv");
+  auto geomShaderModule = vk.createShaderModule("grid.geom.spv");
+  auto fragShaderModule = vk.createShaderModule("grid.frag.spv");
+
+  vk::PipelineShaderStageCreateInfo stageInfo[3]{};
+  memset(&stageInfo, 0, sizeof(stageInfo));
+  stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
+  stageInfo[0].setModule(vertShaderModule);
+  stageInfo[0].setPName("main");
+  stageInfo[1].setStage(vk::ShaderStageFlagBits::eGeometry);
+  stageInfo[1].setModule(geomShaderModule);
+  stageInfo[1].setPName("main");
+  stageInfo[2].setStage(vk::ShaderStageFlagBits::eFragment);
+  stageInfo[2].setModule(fragShaderModule);
+  stageInfo[2].setPName("main");
+
+  vk::VertexInputBindingDescription   vertexBinding{0,
+                                                  2 * sizeof(float),
+                                                  vk::VertexInputRate::eVertex};
+  vk::VertexInputAttributeDescription vertexAttr = {
+      0,                         // location
+      0,                         // binding
+      vk::Format::eR32G32Sfloat, // 'vertices' only has 2 floats per vertex
+      0                          // offset
+  };
+  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
+  vertexInputInfo.setVertexBindingDescriptionCount(1);
+  vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
+  vertexInputInfo.setVertexAttributeDescriptionCount(1);
+  vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
+
+  vk::DynamicState dynStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+  vk::PipelineDynamicStateCreateInfo dynamicInfo;
+  dynamicInfo.setDynamicStates(dynStates);
+
+  vk::PipelineViewportStateCreateInfo viewportInfo{};
+  viewportInfo.viewportCount = viewportInfo.scissorCount = 1;
+
+  vk::PipelineInputAssemblyStateCreateInfo iaInfo;
+  iaInfo.topology = vk::PrimitiveTopology::ePointList;
+
+  vk::PipelineRasterizationStateCreateInfo rsInfo{};
+  rsInfo.lineWidth = 1.0f;
+
+  vk::PipelineMultisampleStateCreateInfo msInfo{};
+  msInfo.rasterizationSamples = vk.rasterizationSamples;
+
+  vk::PipelineDepthStencilStateCreateInfo dsInfo = vk.sceneDS;
+
+  // SrcAlpha, One
+  vk::PipelineColorBlendStateCreateInfo blendInfo{};
+  vk::PipelineColorBlendAttachmentState blend;
+  blend.blendEnable         = true;
+  blend.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  blend.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
+  blend.colorBlendOp        = vk::BlendOp::eAdd;
+  blend.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  blend.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+  blend.alphaBlendOp        = vk::BlendOp::eAdd;
+  blend.colorWriteMask      = vk::ColorComponentFlagBits::eR
+                       | vk::ColorComponentFlagBits::eG
+                       | vk::ColorComponentFlagBits::eB
+                       | vk::ColorComponentFlagBits::eA;
+  blendInfo.attachmentCount = 1;
+  blendInfo.pAttachments    = &blend;
+
+  vk::GraphicsPipelineCreateInfo pipelineInfo{};
+  pipelineInfo.pViewportState      = &viewportInfo;
+  pipelineInfo.pInputAssemblyState = &iaInfo;
+  pipelineInfo.pRasterizationState = &rsInfo;
+  pipelineInfo.pMultisampleState   = &msInfo;
+  pipelineInfo.pDepthStencilState  = &dsInfo;
+  pipelineInfo.pColorBlendState    = &blendInfo;
+  pipelineInfo.setStages(stageInfo);
+  pipelineInfo.setPVertexInputState(&vertexInputInfo);
+  pipelineInfo.setPDynamicState(&dynamicInfo);
+  pipelineInfo.layout     = pipelineLayout_;
+  pipelineInfo.renderPass = vk.rp;
+
+  vk::Result res;
+  std::tie(res, pipeline_) = vk.dev.createGraphicsPipeline(pipelineCache_, pipelineInfo);
+
+  vk.dev.destroyShaderModule(vertShaderModule);
+  vk.dev.destroyShaderModule(fragShaderModule);
+
+  if(res != vk::Result::eSuccess)
   {
-    qFatal(lcPlot).noquote() << "Compute shader failed to compile:\n" << compute_->log();
-  }
-  if(!compute_->link())
-  {
-    qFatal(lcPlot).noquote() << "Compute shader program failed to link:\n" << compute_->log();
+    qFatal().nospace() << "Failed to create graphics pipeline: " << magic_enum::enum_name(res);
   }
 
-  program_ = std::make_unique<QOpenGLShaderProgram>();
-  if(!program_->addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                        R"GLSL(#version 450 core
-layout(location = 0) in vec4 in_position; // dummy input
-
-void main() {
-    gl_Position = in_position;
-}
-)GLSL"))
-  {
-    qFatal(lcPlot).noquote() << "Fragment shader failed to compile:\n" << program_->log();
-  }
-
-  if(!program_->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                        R"GLSL(#version 450 core
-           out vec4 fragColor;
-           uniform vec4 u_color;
-           void main() { fragColor = u_color; })GLSL"))
-  {
-    qFatal(lcPlot).noquote() << "Fragment shader failed to compile:\n" << program_->log();
-  }
-
-  if(!program_->link())
-  {
-    qFatal(lcPlot).noquote() << "Shader program failed to link:\n" << program_->log();
-  }
-
-  assert(not glHandle_);
-
-  static constexpr size_t MAX_VERTICES = 32;
-  glGenBuffers(1, &glHandle_);
-  glBindBuffer(GL_ARRAY_BUFFER, glHandle_);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * MAX_VERTICES, nullptr, GL_STATIC_DRAW);
   return true;
+}
+
+void PlotGrid::releaseResources()
+{
+  if(pipeline_ != nullptr)
+  {
+    auto& vk  = vkContext();
+    auto& dev = vk.dev;
+    dev.destroy(pipeline_);
+    dev.destroy(pipelineLayout_);
+    dev.destroy(pipelineCache_);
+  }
 }
 
 void PlotGrid::draw()
 {
-  const GLuint TOTAL_VERTICES = ticks_ * 4;
-  if(isDirty())
-  {
-    compute_->bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, glHandle_);
-    // WARNING Qt uses glUniform1i here !!!!
-    // program_->setUniformValue("u_ticks", GLuint(ticks_));
-    glUniform1ui(compute_->uniformLocation("u_ticks"), ticks_);
+  auto& vk = vkContext();
+  auto& cb = vk.commandBuffer;
 
-    // Dispatch one workgroup per tick (or multiple invocations per workgroup)
-    glDispatchCompute(ticks_, 1, 1);
-    if(const auto e = glsl::checkError(); not e.empty())
-    {
-      qWarning() << "glDispatchCompute error:" << e;
-    }
-    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
-    compute_->release();
-  }
+  cb.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
 
-  program_->bind();
-  program_->setUniformValue("u_color", color_);
-  glBindBuffer(GL_ARRAY_BUFFER, glHandle_);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), nullptr);
+  push_.mvp            = vk.modelViewProjection;
+  push_.boundingSize.x = vk.boundingRect.extent.width;
+  push_.boundingSize.y = vk.boundingRect.extent.height;
+  cb.pushConstants(pipelineLayout_,
+                   vk::ShaderStageFlagBits::eVertex
+                       | vk::ShaderStageFlagBits::eGeometry
+                       | vk::ShaderStageFlagBits::eFragment,
+                   0,
+                   sizeof(push_),
+                   &push_);
 
-  glPushAttrib(GL_ENABLE_BIT);
-  glLineStipple(1, 0b1110000000000111);
-  glEnable(GL_LINE_STIPPLE);
-  glLineWidth(0.5);
-  glDrawArrays(GL_LINES, 0, TOTAL_VERTICES);
-  if(const auto e = glsl::checkError(); not e.empty())
-  {
-    qWarning() << "glDrawArrays error:" << e;
-  }
-  glPopAttrib();
-  program_->release();
+  cb.draw(push_.ticks, 1, 0, 0);
 }

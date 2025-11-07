@@ -77,19 +77,19 @@ ApplicationWindow {
                 max: counter1.high + 10
             }
 
-            LinePlotSeries {
+            PlotLineSeries {
                 id: ps1
                 name: "counter1"
                 lineColor: "cyan"
                 dataProvider: counter1
-                lineStyle: LinePlotSeries.Halo
+                lineStyle: PlotLineSeries.Halo
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 id: ps2
                 name: "counter2"
                 lineColor: "magenta"
                 dataProvider: counter2
-                lineStyle: LinePlotSeries.Halo
+                lineStyle: PlotLineSeries.Halo
             }
         }
     }

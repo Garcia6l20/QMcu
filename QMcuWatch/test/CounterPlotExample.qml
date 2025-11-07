@@ -65,7 +65,7 @@ ApplicationWindow {
                 max: 500
             }
 
-            LinePlotSeries {
+            PlotLineSeries {
                 ScrollPlotProvider {
                     id: counterScrollProvider
                     VariableProxy {
@@ -74,7 +74,7 @@ ApplicationWindow {
                     }
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 ScrollPlotProvider {
                     VariableProxy {
                         name: "noiseCounter"

@@ -64,70 +64,70 @@ ApplicationWindow {
                 max: +12.5
             }
 
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "1 Hz"
                 dataProvider: TestSignal {
                     amplitude: 10
                     frequency: 1
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "2 Hz"
                 dataProvider: TestSignal {
                     amplitude: -8
                     frequency: 2
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "3 Hz"
                 dataProvider: TestSignal {
                     amplitude: 9
                     frequency: 3
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "4 Hz"
                 dataProvider: TestSignal {
                     amplitude: -7
                     frequency: 4
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "5 Hz"
                 dataProvider: TestSignal {
                     amplitude: -9
                     frequency: 5
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "6 Hz"
                 dataProvider: TestSignal {
                     amplitude: 8
                     frequency: 6
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "7 Hz"
                 dataProvider: TestSignal {
                     amplitude: -7
                     frequency: 7
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "8 Hz"
                 dataProvider: TestSignal {
                     amplitude: 6
                     frequency: 8
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "9 Hz"
                 dataProvider: TestSignal {
                     amplitude: 7
                     frequency: 9
                 }
             }
-            LinePlotSeries {
+            PlotLineSeries {
                 name: "10 Hz"
                 dataProvider: TestSignal {
                     amplitude: -6

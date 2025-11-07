@@ -58,35 +58,38 @@ protected:
 
   template <typename T> std::span<T> createMappedArrayBuffer(size_t count, uint32_t binding = 0)
   {
-    return std::span(reinterpret_cast<T*>(
-                         createMappedBuffer(glsl::typeIdOf<T>(), count, GL_ARRAY_BUFFER, binding)),
-                     count);
+    return std::span(
+        reinterpret_cast<T*>(createMappedBuffer(qplot::typeIdOf<T>(),
+                                                count,
+                                                vk::BufferUsageFlagBits::eVertexBuffer)),
+        count);
   }
 
   std::span<std::byte> createMappedArrayBuffer(QMetaType::Type qtType, size_t count)
   {
-    return glsl::visitQtType(qtType,
-                             [&]<typename T>
-                             { return std::as_writable_bytes(createMappedArrayBuffer<T>(count)); });
+    return qplot::visitQtType(
+        qtType,
+        [&]<typename T> { return std::as_writable_bytes(createMappedArrayBuffer<T>(count)); });
   }
 
   template <typename T> std::span<T> createMappedStorageBuffer(size_t count, uint32_t binding = 0)
   {
     return std::span(
-        reinterpret_cast<T*>(
-            createMappedBuffer(glsl::typeIdOf<T>(), count, GL_SHADER_STORAGE_BUFFER, binding)),
+        reinterpret_cast<T*>(createMappedBuffer(qplot::typeIdOf<T>(),
+                                                count,
+                                                vk::BufferUsageFlagBits::eStorageBuffer)),
         count);
   }
 
   std::span<std::byte> createMappedStorageBuffer(QMetaType::Type qtType, size_t count)
   {
-    return glsl::visitQtType(
+    return qplot::visitQtType(
         qtType,
         [&]<typename T> { return std::as_writable_bytes(createMappedStorageBuffer<T>(count)); });
   }
 
 private:
-  void* createMappedBuffer(glsl::TypeId tid, size_t count, GLuint bufferType, GLuint binding = 0);
+  void* createMappedBuffer(qplot::TypeId tid, size_t count, vk::BufferUsageFlagBits usage);
 
   AbstractPlotSeries* series_ = nullptr;
   QString             name_;

@@ -7,47 +7,52 @@
 uint32_t AbstractPlotSeries::s_instanceCount_ = 0;
 
 AbstractPlotSeries::AbstractPlotSeries(QObject* parent)
-    : BasicRenderer{parent}, id_(++s_instanceCount_)
+    : PlotSceneItem{parent}, id_(++s_instanceCount_)
 {
 }
 
-void* AbstractPlotSeries::createMappedBuffer(glsl::TypeId tid,
-                                             size_t       count,
-                                             GLuint       bufferType,
-                                             GLuint       binding)
+void* AbstractPlotSeries::createMappedBuffer(qplot::TypeId           tid,
+                                             size_t                  count,
+                                             vk::BufferUsageFlagBits usage)
 {
-  ctx_.data.type = tid.qt;
-
-  ctx_.vbo._gl_type = tid.gl;
+  ctx_.data.type  = tid.qt;
   ctx_.vbo.stride = ctx_.vbo.elem_size = tid.size;
 
-  if(not isInitialized())
-  {
-    initializeOpenGLFunctions();
-  }
-
-  if(!ctx_.vbo._gl_handle)
-  {
-    glGenBuffers(1, &ctx_.vbo._gl_handle);
-  }
-
-  glBindBuffer(bufferType, ctx_.vbo._gl_handle);
-
-  glBufferStorage(bufferType,
-                  count * tid.size,
-                  nullptr,
-                  GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-
-  glBindBufferBase(bufferType, binding, ctx_.vbo._gl_handle);
-
   const size_t size_bytes = count * ctx_.vbo.stride;
-  ctx_.vbo._range         = {reinterpret_cast<std::byte*>(glMapBufferRange(
-                         bufferType,
-                         0,
-                         size_bytes,
-                         GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)),
-                             size_bytes};
-  return ctx_.vbo._range.data();
+
+  auto& vk = vkContext();
+
+  vk::BufferCreateInfo bufferInfo{};
+  bufferInfo.size  = aligned(size_bytes, vk.physDevProps.limits.minStorageBufferOffsetAlignment);
+  bufferInfo.usage = usage;
+  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+
+  ctx_.vbo._buffer = vk.dev.createBuffer(bufferInfo);
+
+  vk::MemoryRequirements memReq = vk.dev.getBufferMemoryRequirements(ctx_.vbo._buffer);
+
+  auto const memTypeIndex =
+      vk.findMemoryTypeIndex(memReq,
+                             vk::MemoryPropertyFlagBits::eHostVisible
+                                 | vk::MemoryPropertyFlagBits::eHostCoherent // persistent/coherent
+      );
+  if(memTypeIndex == UINT32_MAX)
+    qFatal("Failed to find host visible and coherent memory type");
+
+  vk::MemoryAllocateInfo allocInfo{};
+  allocInfo.setAllocationSize(memReq.size);
+  allocInfo.setMemoryTypeIndex(memTypeIndex);
+  ctx_.vbo._bufferMem = vk.dev.allocateMemory(allocInfo);
+  vk.dev.bindBufferMemory(ctx_.vbo._buffer, ctx_.vbo._bufferMem, 0);
+
+  void* mappedPtr = vk.dev.mapMemory(ctx_.vbo._bufferMem, 0, bufferInfo.size);
+  ctx_.vbo._range = {reinterpret_cast<std::byte*>(mappedPtr), size_bytes};
+  return mappedPtr;
+}
+
+void AbstractPlotSeries::releaseResources()
+{
+  ctx_.vbo.releaseResources(vkContext().dev);
 }
 
 void AbstractPlotSeries::setAxisX(QAbstractAxis* xAxis)

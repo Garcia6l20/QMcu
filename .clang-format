@@ -35,7 +35,9 @@ BinPackParameters: false
 PointerAlignment: Left
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
-AlignOperands: true
+AlignOperands: AlignAfterOperator
+BreakBeforeBinaryOperators: NonAssignment
+BreakBinaryOperations: OnePerLine
 
 # specific for switch
 IndentCaseLabels: true
@@ -43,6 +45,14 @@ IndentCaseLabels: true
 # defines & macros
 AlignConsecutiveMacros: true
 AlignEscapedNewlines: Left
+
+AlignArrayOfStructures: Left
+
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+  AlignCaseColons: false
 
 # space config
 SpaceAfterCStyleCast: false

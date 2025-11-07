@@ -10,19 +10,18 @@
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
       "cwd": "${command:cmake.getLaunchTargetDirectory}",
-      // "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
       "environment": [
         { "name": "ASAN_OPTIONS", "value": "abort_on_error=1" },
         {
-          "name": "ELF_TEST_FILE",
-          // "value": "${workspaceFolder}/native/libstm32/test/test.elf"
-          "value": "/home/sylvain/projects/b2r/build/nucleo-debug/bin/b2r.elf"
+          "name": "QML_IMPORT_PATH",
+          "value": "${command:cmake.buildDirectory}/qml"
         }
       ],
       "args": [
-        // "${workspaceFolder}/QMcuWatch/test/custom.qml"
-        "${workspaceFolder}/QMcuWatch/test/counter.qml"
+        // "${workspaceFolder}/QMcuWatch/test/CounterExample.qml"
+        "${workspaceFolder}/QMcuWatch/test/CounterPlotExample.qml"
+        // "${workspaceFolder}/QMcuWatch/test/CounterBuffersExample.qml"
       ],
       "setupCommands": [
         {
@@ -30,13 +29,7 @@
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
-      ],
-      // "externalConsole": true,
-      // "logging": {
-      //   "trace": true,
-      //   "traceResponse": true,
-      //   "engineLogging": true
-      // }
+      ]
     }
   ]
 }
