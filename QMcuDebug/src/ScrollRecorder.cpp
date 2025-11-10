@@ -5,7 +5,7 @@
 
 #include <Logging.hpp>
 
-#include <QtCharts/QValueAxis>
+#include <QtGraphs/QValueAxis>
 
 #include <QTimer>
 

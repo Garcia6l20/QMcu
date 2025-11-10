@@ -1,6 +1,6 @@
 import QtCore
 import QtQuick
-import QtCharts
+import QtGraphs
 import QMcuDebug
 
 LineSeries {

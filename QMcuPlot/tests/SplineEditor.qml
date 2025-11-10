@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import QtCharts
+import QtGraphs
 import QMcuPlot
 import Qt.labs.platform
 
@@ -36,14 +36,14 @@ ApplicationWindow {
         });
         console.log(root.points);
         root.selectedIndex = root.points.length - 1;
-        chartView.updateSeries();
+        graphsView.updateSeries();
     }
 
     function removeSelected() {
         if (root.selectedIndex >= 0 && root.selectedIndex < root.points.length) {
             root.points.splice(root.selectedIndex, 1);
             root.selectedIndex = -1;
-            chartView.updateSeries();
+            graphsView.updateSeries();
         }
     }
 
@@ -73,7 +73,7 @@ ApplicationWindow {
                     points.push(Qt.point(i.x, i.y));
                 }
                 root.points = points;
-                chartView.updateSeries();
+                graphsView.updateSeries();
                 console.log(`${fio.source} loaded !`);
             } else {
                 fio.source = fileDialog.currentFile;
@@ -83,18 +83,6 @@ ApplicationWindow {
                     return;
                 }
                 console.log(`${fio.source} written !`);
-            }
-        }
-    }
-
-    function updateTicks() {
-        for (let ii = 3; ii < nOutputData.value; ++ii) {
-            const n = nOutputData.value / ii;
-            if (Math.floor(n) == n) {
-                axisX.tickCount = ii;
-                axisX.minorTickCount = n;
-                console.debug(`Ticks: ${axisX.tickCount}/${axisX.minorTickCount}`);
-                break;
             }
         }
     }
@@ -109,10 +97,7 @@ ApplicationWindow {
                 from: 3
                 to: 1024 * 10
                 value: 32
-                onValueChanged: {
-                    root.updateTicks();
-                    chartView.updateSeries();
-                }
+                onValueChanged: graphsView.updateSeries()
             }
         }
         Button {
@@ -134,65 +119,90 @@ ApplicationWindow {
     ColumnLayout {
         anchors.fill: parent
 
-        ChartView {
-            id: chartView
+        Rectangle {
             Layout.fillHeight: true
             Layout.fillWidth: true
-            antialiasing: true
+            focus: true
 
-            ValueAxis {
-                id: axisX
-                min: 0
-                max: 1
-                titleText: "X"
-            }
-            ValueAxis {
-                id: axisY
-                min: 0
-                max: 1
-                titleText: "Y"
+            TapHandler {
+                onDoubleTapped: {
+                    const pa = graphsView.plotArea;
+                    const pt = Qt.point(point.position.x, point.position.y);
+                    root.addPoint(Qt.point((pt.x - pa.x) / pa.width, 1 - ((pt.y - pa.y) / pa.height)));
+                }
             }
 
-            SplineSeries {
-                id: splineSeries
-                // visible: false
-                name: "expected"
-                axisX: axisX
-                axisY: axisY
-                color: "blue"
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Delete && pointsSeries.selectedPoints.length) {
+                    console.log("Deleting...");
+                    root.points.splice(pointsSeries.selectedPoints[0], 1);
+                    graphsView.updateSeries();
+                    event.accepted = true;
+                }
             }
+            GraphsView {
+                id: graphsView
+                anchors.fill: parent
+                antialiasing: true
 
-            ScatterSeries {
-                id: pointsSeries
-                name: "points"
-                axisX: axisX
-                axisY: axisY
-                color: "red"
-                markerSize: 10
-            }
+                axisX: ValueAxis {
+                    min: 0
+                    max: 1
+                    titleText: "X"
+                }
+                axisY: ValueAxis {
+                    min: 0
+                    max: 1
+                    titleText: "Y"
+                }
 
-            ScatterSeries {
-                id: controlSeries
-                name: "controls"
-                axisX: axisX
-                axisY: axisY
-                color: "yellow"
-                markerSize: 7
-            }
+                SplineSeries {
+                    id: splineSeries
+                    name: "expected"
+                    color: "blue"
+                }
 
-            LineSeries {
-                id: outputSeries
-                name: "output"
-                axisX: axisX
-                axisY: axisY
-                color: "green"
-                style: Qt.DashLine
-            }
+                ScatterSeries {
+                    id: pointsSeries
+                    name: "points"
+                    pointDelegate: Rectangle {
+                        property bool pointSelected
+                        radius: 6
+                        width: radius * 2
+                        height: radius * 2
+                        border.width: pointSelected ? 1 : 0
+                        border.color: "purple"
+                        color: "red"
+                        onXChanged: {}
+                    }
+                    draggable: true
+                    selectable: true
+                    onPointReplaced: ii => {
+                        if (ii != 0 && ii < this.count - 1) {
+                            root.points[ii] = this.at(ii);
+                        }
+                        graphsView.updateSeries();
+                    }
+                }
 
-            Timer {
-                id: updateDelay
-                interval: 250
-                onTriggered: {
+                ScatterSeries {
+                    id: controlSeries
+                    name: "controls"
+                    pointDelegate: Rectangle {
+                        radius: 3
+                        width: radius * 2
+                        height: radius * 2
+                        color: "yellow"
+                    }
+                }
+
+                LineSeries {
+                    id: outputSeries
+                    name: "output"
+                    color: "green"
+                }
+
+                function updateSeries() {
                     splineSeries.clear();
                     for (var i = 0; i < root.points.length; i++)
                         splineSeries.append(root.points[i].x, root.points[i].y);
@@ -217,71 +227,8 @@ ApplicationWindow {
 
                     outputText.text = JSON.stringify(y, null, 1);
                 }
-            }
 
-            function updateSeries() {
-                updateDelay.start();
-            }
-
-            Component.onCompleted: {
-                root.updateTicks();
-                chartView.updateSeries();
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                drag.target: null
-                focus: true
-
-                property bool dragging: false
-                onDoubleClicked: mouse => {
-                    const point = chartView.mapToValue(Qt.point(mouse.x, mouse.y));
-                    root.addPoint(point);
-                }
-
-                onPressed: mouse => {
-                    var closest = -1, minD = Infinity;
-                    const point = chartView.mapToValue(Qt.point(mouse.x, mouse.y));
-                    console.debug(`point: ${point} (mouse: ${mouse.x}, ${mouse.y})`);
-                    for (var i = 0; i < root.points.length; i++) {
-                        var dx = root.points[i].x - point.x, dy = root.points[i].y - point.y, d2 = dx * dx + dy * dy;
-                        if (d2 < minD) {
-                            minD = d2;
-                            closest = i;
-                        }
-                    }
-                    if (minD < 7.5) {
-                        if (closest == 0) {
-                            console.debug("first point is fixed !");
-                            return;
-                        } else if (closest == root.points.length - 1) {
-                            console.debug("last point is fixed !");
-                            return;
-                        }
-                        console.debug(`selecting: ${closest}`);
-                        root.selectedIndex = closest;
-                        focus = true;
-                        dragging = true;
-                    }
-                }
-                onReleased: mouse => {
-                    dragging = false;
-                }
-                onPositionChanged: mouse => {
-                    if (dragging && root.selectedIndex >= 0) {
-                        const point = chartView.mapToValue(Qt.point(mouse.x, mouse.y));
-                        root.points[root.selectedIndex].x = root.clamp(point.x, 0, chartView.width);
-                        root.points[root.selectedIndex].y = root.clamp(point.y, 0, chartView.height);
-                        chartView.updateSeries();
-                    }
-                }
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Delete) {
-                        console.log("Deleting...");
-                        root.removeSelected();
-                        event.accepted = true;
-                    }
-                }
+                Component.onCompleted: graphsView.updateSeries()
             }
         }
         ScrollView {

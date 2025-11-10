@@ -95,7 +95,7 @@ Following libraries are required to be installed on the system:
 - Qt6:
   - Core
   - Qml
-  - Charts
+  - Graphs
 
 Following libraries are used internally (automatically fetcher during compilation):
 

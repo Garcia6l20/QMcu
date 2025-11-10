@@ -5,7 +5,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Window
-import QtCharts
+import QtGraphs
 
 ApplicationWindow {
     id: root
@@ -45,13 +45,12 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        ChartView {
+        GraphsView {
             id: mainChart
             title: "Counter plot"
             Layout.fillHeight: true
             Layout.fillWidth: true
             antialiasing: true
-            theme: ChartView.ChartThemeDark
 
             ScrollRecorderSeries {
                 id: counterSeries

@@ -1,16 +1,16 @@
-import QtCore 6.9
-import QtQuick 2.15
-import QtCharts 2.15
+import QtCore
+import QtQuick
+import QtGraphs
 
 Item {
     id: root
     visible: false
 
-    property ChartView chart: parent instanceof ChartView ? parent : null
+    property GraphsView chart: parent instanceof GraphsView ? parent : null
 
     Component.onCompleted: {
         if (!chart) {
-            console.error(`AutoScale must be used inside a ChartView`);
+            console.error(`AutoScale must be used inside a GraphsView`);
         }
 
         // listen to series additions/removals

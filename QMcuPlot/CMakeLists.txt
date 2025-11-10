@@ -136,7 +136,7 @@ target_include_directories(QMcuPlot
 )
 target_link_libraries(QMcuPlot
   PUBLIC
-    Qt6::Quick Qt6::Qml Qt6::Charts
+    Qt6::Quick Qt6::Qml Qt6::Graphs
   PRIVATE
     fmt::fmt
     glm::glm

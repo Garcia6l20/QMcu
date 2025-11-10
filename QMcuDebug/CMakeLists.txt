@@ -40,10 +40,11 @@ target_include_directories(QMcuDebug
 )
 target_link_libraries(QMcuDebug
   PUBLIC
-    Qt6::Quick Qt6::Qml Qt6::Charts
+    Qt6::Quick Qt6::Qml Qt6::Graphs
     QMcuPlot
     lldb
   PRIVATE
+    Qt6::GraphsPrivate
     stlink
     magic_enum::magic_enum
 )

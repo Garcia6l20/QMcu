@@ -1,6 +1,6 @@
 @PACKAGE_INIT@
 
-find_package(Qt6 REQUIRED COMPONENTS Core Qml Charts Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Qml Graphs Quick)
 
 include("${CMAKE_CURRENT_LIST_DIR}/QMcuTargets.cmake")
 add_library(QMcu::Plot ALIAS QMcu::QMcuPlot)

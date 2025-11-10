@@ -18,7 +18,6 @@ qt_add_qml_module(QMcuWatch
 set(QT_LIBS
   Qt6::Core
   Qt6::Gui
-  Qt6::Widgets
 )
 
 target_include_directories(QMcuWatch PRIVATE include src)

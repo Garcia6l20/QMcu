@@ -3,8 +3,8 @@
 #include <QMcu/Debug/AbstractVariableRecorder.hpp>
 #include <QMcu/Debug/Variable.hpp>
 
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QValueAxis>
+#include <QtGraphs/QLineSeries>
+#include <QtGraphs/QValueAxis>
 
 class BufferRecorder : public AbstractVariableRecorder
 {

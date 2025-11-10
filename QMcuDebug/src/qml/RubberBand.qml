@@ -1,6 +1,6 @@
 import QtCore
 import QtQuick
-import QtCharts
+import QtGraphs
 
 Item {
     id: root
@@ -9,7 +9,7 @@ Item {
     property int xScaleZoom: 0
     property int yScaleZoom: 0
 
-    property ChartView chart: parent instanceof ChartView ? parent : null
+    property GraphsView chart: parent instanceof GraphsView ? parent : null
 
     property var series: []
 
@@ -29,7 +29,7 @@ Item {
 
     Component.onCompleted: {
         if (!chart)
-            console.error(`RubberBand must be used inside a ChartView`);
+            console.error(`RubberBand must be used inside a GraphsView`);
         series = getSeries();
     }
 

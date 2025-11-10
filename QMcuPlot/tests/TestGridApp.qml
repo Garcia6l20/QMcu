@@ -5,7 +5,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Effects
-import QtCharts
+import QtGraphs
 
 import QMcuPlot
 import QPlotTest

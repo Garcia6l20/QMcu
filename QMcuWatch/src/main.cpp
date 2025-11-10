@@ -1,4 +1,4 @@
-#include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
   qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message}");
   // qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message} (%{file}:%{line})");
 
-  QApplication app(argc, argv);
+  QGuiApplication app(argc, argv);
   app.setOrganizationName("tpl");
   app.setOrganizationDomain("dev");
   app.setApplicationName("QMcuWatch");

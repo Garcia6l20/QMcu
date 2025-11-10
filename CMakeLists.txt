@@ -11,12 +11,7 @@ include(CPM)
 
 find_package(lldb REQUIRED)
 find_package(stlink REQUIRED)
-find_package(Qt6 COMPONENTS Core Quick Qml Charts ShaderTools REQUIRED)
-
-if(NOT TARGET Qt6::Widgets)
-  message(STATUS "QMcuWatch disabled (missing: Qt6::Gui)")
-  return()
-endif()
+find_package(Qt6 COMPONENTS Core Quick Qml Graphs ShaderTools REQUIRED)
 
 CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 CPMAddPackage(
@@ -99,7 +94,7 @@ if(NOT WIN32)
   # Enable .tar.gz and .zip
   list(APPEND CPACK_GENERATOR "STGZ;DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sylvain Garcia (TPL Systems)")
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, qt6-declarative, qt6-charts, lldb, stlink")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, qt6-declarative, qt6-graphs, lldb, stlink")
 else()
   set(APPEND CPACK_GENERATOR "NSIS")
 endif()

@@ -1,12 +1,12 @@
-import QMcuDebug 1.0
-import QtCore 6.9
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
+import QMcuDebug
+import QtCore
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Dialogs
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
-import QtCharts 2.15
+import QtQuick.Layouts
+import QtQuick.Window
+import QtGraphs
 
 ApplicationWindow {
     id: root
@@ -49,13 +49,12 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        ChartView {
+        GraphsView {
             id: mainChart
             title: "Counter plot"
             Layout.fillHeight: true
             Layout.fillWidth: true
             antialiasing: true
-            theme: ChartView.ChartThemeDark
 
             ScrollRecorderSeries {
                 id: counterSeries

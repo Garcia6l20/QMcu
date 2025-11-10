@@ -1,12 +1,12 @@
-import QMcuDebug 1.0
-import QtCore 6.9
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
+import QMcuDebug
+import QtCore
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Dialogs
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
-import QtCharts 2.15
+import QtQuick.Layouts
+import QtQuick.Window
+import QtGraphs
 
 ApplicationWindow {
     id: root
@@ -52,12 +52,12 @@ ApplicationWindow {
         }
     }
 
-    ChartView {
+    GraphsView {
         id: mainChart
         anchors.fill: parent
         title: "Live plot"
         antialiasing: true
-        theme: ChartView.ChartThemeDark
+        theme: GraphsView.ChartThemeDark
 
         ScrollRecorderSeries {
             id: vBusSeries
@@ -80,7 +80,7 @@ ApplicationWindow {
             visible: pt !== null
             onPtChanged: {
                 if (pt !== null) {
-                    this.name = `${pt.y.toFixed(3)} V`
+                    this.name = `${pt.y.toFixed(3)} V`;
                     console.debug(`${pt} selected`);
                     this.clear();
                     this.append(pt.x, pt.y);

@@ -1,8 +1,8 @@
 #include <QMcu/Debug/AutoScale.hpp>
 
-#include <QChartView>
 #include <QQuickItem>
 #include <QTimer>
+#include <QtGraphs/private/qgraphsview_p.h> // No QGraphsView ???
 
 #include <QAbstractAxis>
 #include <QLineSeries>
@@ -97,29 +97,7 @@ void AutoScale::updateAxis()
   highest_y_range.low -= yMargin_;
   highest_y_range.high += yMargin_;
 
-  const auto axes = s0->attachedAxes();
-  if(axes.count() == 0)
-  {
-    return;
-  }
-
-  auto const xAx0 = axes[0];
-  auto const yAx0 = axes[1];
-  xAx0->setRange(highest_x_range.low, highest_x_range.high);
-  yAx0->setRange(highest_y_range.low, highest_y_range.high);
-
-  for(auto* series : rng | std::views::drop(1))
-  {
-    const auto axes = series->attachedAxes();
-    if(axes.count() == 0)
-    {
-      continue;
-    }
-
-    auto const xAx = axes[0];
-    auto const yAx = axes[1];
-
-    xAx->setRange(highest_x_range.low, highest_x_range.high);
-    yAx->setRange(highest_y_range.low, highest_y_range.high);
-  }
+  const auto graph = s0->graph();
+  graph->axisX()->setRange(highest_x_range.low, highest_x_range.high);
+  graph->axisY()->setRange(highest_y_range.low, highest_y_range.high);
 }
