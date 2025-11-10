@@ -1,4 +1,5 @@
 #include <QMcu/Plot/PlotGrid.hpp>
+#include <QMcu/Plot/VK/VulkanPipelineBuilder.hpp>
 
 #include <Logging.hpp>
 
@@ -31,104 +32,13 @@ QByteArray getShader(QString const& filename)
 
 bool PlotGrid::initialize()
 {
-  auto& vk = vkContext();
+  auto builder = VulkanPipelineBuilder(vkContext());
+  builder.addStage("grid.vert.spv", vk::ShaderStageFlagBits::eVertex);
+  builder.addStage("grid.geom.spv", vk::ShaderStageFlagBits::eGeometry);
+  builder.addStage("grid.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-  Q_ASSERT(vk.framesInFlight <= 3);
-
-  pipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
-  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
-
-  auto vertShaderModule = vk.createShaderModule("grid.vert.spv");
-  auto geomShaderModule = vk.createShaderModule("grid.geom.spv");
-  auto fragShaderModule = vk.createShaderModule("grid.frag.spv");
-
-  vk::PipelineShaderStageCreateInfo stageInfo[3]{};
-  memset(&stageInfo, 0, sizeof(stageInfo));
-  stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
-  stageInfo[0].setModule(vertShaderModule);
-  stageInfo[0].setPName("main");
-  stageInfo[1].setStage(vk::ShaderStageFlagBits::eGeometry);
-  stageInfo[1].setModule(geomShaderModule);
-  stageInfo[1].setPName("main");
-  stageInfo[2].setStage(vk::ShaderStageFlagBits::eFragment);
-  stageInfo[2].setModule(fragShaderModule);
-  stageInfo[2].setPName("main");
-
-  vk::VertexInputBindingDescription   vertexBinding{0,
-                                                  2 * sizeof(float),
-                                                  vk::VertexInputRate::eVertex};
-  vk::VertexInputAttributeDescription vertexAttr = {
-      0,                         // location
-      0,                         // binding
-      vk::Format::eR32G32Sfloat, // 'vertices' only has 2 floats per vertex
-      0                          // offset
-  };
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.setVertexBindingDescriptionCount(1);
-  vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
-  vertexInputInfo.setVertexAttributeDescriptionCount(1);
-  vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
-
-  vk::DynamicState dynStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-  vk::PipelineDynamicStateCreateInfo dynamicInfo;
-  dynamicInfo.setDynamicStates(dynStates);
-
-  vk::PipelineViewportStateCreateInfo viewportInfo{};
-  viewportInfo.viewportCount = viewportInfo.scissorCount = 1;
-
-  vk::PipelineInputAssemblyStateCreateInfo iaInfo;
-  iaInfo.topology = vk::PrimitiveTopology::ePointList;
-
-  vk::PipelineRasterizationStateCreateInfo rsInfo{};
-  rsInfo.lineWidth = 1.0f;
-
-  vk::PipelineMultisampleStateCreateInfo msInfo{};
-  msInfo.rasterizationSamples = vk.rasterizationSamples;
-
-  vk::PipelineDepthStencilStateCreateInfo dsInfo = vk.sceneDS;
-
-  // SrcAlpha, One
-  vk::PipelineColorBlendStateCreateInfo blendInfo{};
-  vk::PipelineColorBlendAttachmentState blend;
-  blend.blendEnable         = true;
-  blend.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  blend.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
-  blend.colorBlendOp        = vk::BlendOp::eAdd;
-  blend.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  blend.dstAlphaBlendFactor = vk::BlendFactor::eZero;
-  blend.alphaBlendOp        = vk::BlendOp::eAdd;
-  blend.colorWriteMask      = vk::ColorComponentFlagBits::eR
-                       | vk::ColorComponentFlagBits::eG
-                       | vk::ColorComponentFlagBits::eB
-                       | vk::ColorComponentFlagBits::eA;
-  blendInfo.attachmentCount = 1;
-  blendInfo.pAttachments    = &blend;
-
-  vk::GraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.pViewportState      = &viewportInfo;
-  pipelineInfo.pInputAssemblyState = &iaInfo;
-  pipelineInfo.pRasterizationState = &rsInfo;
-  pipelineInfo.pMultisampleState   = &msInfo;
-  pipelineInfo.pDepthStencilState  = &dsInfo;
-  pipelineInfo.pColorBlendState    = &blendInfo;
-  pipelineInfo.setStages(stageInfo);
-  pipelineInfo.setPVertexInputState(&vertexInputInfo);
-  pipelineInfo.setPDynamicState(&dynamicInfo);
-  pipelineInfo.layout     = pipelineLayout_;
-  pipelineInfo.renderPass = vk.rp;
-
-  vk::Result res;
-  std::tie(res, pipeline_) = vk.dev.createGraphicsPipeline(pipelineCache_, pipelineInfo);
-
-  vk.dev.destroyShaderModule(vertShaderModule);
-  vk.dev.destroyShaderModule(fragShaderModule);
-
-  if(res != vk::Result::eSuccess)
-  {
-    qFatal().nospace() << "Failed to create graphics pipeline: " << magic_enum::enum_name(res);
-  }
+  std::vector<vk::DescriptorSetLayout> dsl;
+  std::tie(pipeline_, pipelineCache_, pipelineLayout_, dsl) = builder.build();
 
   return true;
 }

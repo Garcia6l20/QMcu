@@ -1,4 +1,5 @@
 #include <QMcu/Plot/PlotLineSeries.hpp>
+#include <QMcu/Plot/VK/VulkanPipelineBuilder.hpp>
 
 #include <Logging.hpp>
 
@@ -134,64 +135,51 @@ bool PlotLineSeries::initialize()
   ubo.tid = ctx_.data.type;
 
   auto& vk  = vkContext();
-  auto& dev = vk.dev;
 
-  auto vertShaderModule = [&]
+  auto builder = VulkanPipelineBuilder(vk);
+
+  builder.inputAssemblyInfo.setTopology(vk::PrimitiveTopology::eLineStrip);
+
+  switch(ctx_.data.type)
   {
-    switch(ctx_.data.type)
-    {
-      case QMetaType::Type::Float:
-        return vk.createShaderModule("line-plot-series-float.vert.spv");
-      case QMetaType::Type::Double:
-        return vk.createShaderModule("line-plot-series-double.vert.spv");
-      case QMetaType::Type::Char:
-        return vk.createShaderModule("line-plot-series-i8.vert.spv");
-      case QMetaType::Type::UChar:
-        return vk.createShaderModule("line-plot-series-u8.vert.spv");
-      case QMetaType::Type::Short:
-        return vk.createShaderModule("line-plot-series-i16.vert.spv");
-      case QMetaType::Type::UShort:
-        return vk.createShaderModule("line-plot-series-u16.vert.spv");
-      case QMetaType::Type::Int:
-        return vk.createShaderModule("line-plot-series-i16.vert.spv");
-      case QMetaType::Type::UInt:
-        return vk.createShaderModule("line-plot-series-u16.vert.spv");
-      default:
-        qFatal(lcPlot) << "Unhandled data type";
-        std::abort();
-    }
-  }();
-  auto fragShaderModule = vk.createShaderModule("line-plot-series.frag.spv");
+    case QMetaType::Type::Float:
+      builder.addStage("line-plot-series-float.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::Double:
+      builder.addStage("line-plot-series-double.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::Char:
+      builder.addStage("line-plot-series-i8.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::UChar:
+      builder.addStage("line-plot-series-u8.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::Short:
+      builder.addStage("line-plot-series-i16.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::UShort:
+      builder.addStage("line-plot-series-u16.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::Int:
+      builder.addStage("line-plot-series-i16.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    case QMetaType::Type::UInt:
+      builder.addStage("line-plot-series-u16.vert.spv", vk::ShaderStageFlagBits::eVertex);
+      break;
+    default:
+      qFatal(lcPlot) << "Unhandled data type";
+      std::abort();
+  }
+  builder.addStage("line-plot-series.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
   Q_ASSERT(vk.framesInFlight <= 3);
 
-  allocPerUbuf_ = aligned(sizeof(ubo), vk.physDevProps.limits.minUniformBufferOffsetAlignment);
+  std::tie(allocPerUbuf_, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
+      sizeof(ubo),
+      vk::BufferUsageFlagBits::eUniformBuffer,
+      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.setSize(vk.framesInFlight * allocPerUbuf_);
-  bufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
-  ubuf_ = dev.createBuffer(bufferInfo);
-
-  auto memReq       = dev.getBufferMemoryRequirements(ubuf_);
-  auto memTypeIndex = vk.findMemoryTypeIndex(memReq,
-                                             vk::MemoryPropertyFlagBits::eHostVisible
-                                                 | vk::MemoryPropertyFlagBits::eHostCoherent);
-  if(memTypeIndex == UINT32_MAX)
-    qFatal("Failed to find host visible and coherent memory type");
-
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.setAllocationSize(vk.framesInFlight * allocPerUbuf_);
-  allocInfo.setMemoryTypeIndex(memTypeIndex);
-  ubufMem_ = dev.allocateMemory(allocInfo);
-
-  dev.bindBufferMemory(ubuf_, ubufMem_, 0);
-
-  // pipeline setup
-
-  pipelineCache_ = dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
-  vk::DescriptorSetLayoutBinding    descSetLayoutBinding{};
-  vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+  vk::DescriptorSetLayoutBinding descSetLayoutBinding{};
 
   // set 0
   descSetLayoutBinding.setBinding(0);
@@ -201,9 +189,7 @@ bool PlotLineSeries::initialize()
                                      | vk::ShaderStageFlagBits::eFragment
                                      | vk::ShaderStageFlagBits::eGeometry);
 
-  layoutInfo.setBindingCount(1);
-  layoutInfo.setPBindings(&descSetLayoutBinding);
-  uniformsSetLayout_ = vk.dev.createDescriptorSetLayout(layoutInfo);
+  builder.descSetLayoutBindings.emplace_back(descSetLayoutBinding);
 
   // set 1
   descSetLayoutBinding.setBinding(0);
@@ -211,98 +197,13 @@ bool PlotLineSeries::initialize()
   descSetLayoutBinding.setDescriptorType(vk::DescriptorType::eStorageBufferDynamic);
   descSetLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
 
-  layoutInfo.setBindingCount(1);
-  layoutInfo.setPBindings(&descSetLayoutBinding);
-  dataSetLayout_ = vk.dev.createDescriptorSetLayout(layoutInfo);
+  builder.descSetLayoutBindings.emplace_back(descSetLayoutBinding);
 
-  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-  vk::DescriptorSetLayout      descriptorSetLayouts[] = {uniformsSetLayout_, dataSetLayout_};
-  pipelineLayoutInfo.setSetLayouts(descriptorSetLayouts);
-  pipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
+  std::vector<vk::DescriptorSetLayout> dsl;
+  std::tie(pipeline_, pipelineCache_, pipelineLayout_, dsl) = builder.build();
 
-  vk::PipelineShaderStageCreateInfo stageInfo[2]{};
-  stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
-  stageInfo[0].setModule(vertShaderModule);
-  stageInfo[0].setPName("main");
-  stageInfo[1].setStage(vk::ShaderStageFlagBits::eFragment);
-  stageInfo[1].setModule(fragShaderModule);
-  stageInfo[1].setPName("main");
-
-  vk::VertexInputBindingDescription   vertexBinding{0,
-                                                  2 * sizeof(float),
-                                                  vk::VertexInputRate::eVertex};
-  vk::VertexInputAttributeDescription vertexAttr = {
-      0,                         // location
-      0,                         // binding
-      vk::Format::eR32G32Sfloat, // 'vertices' only has 2 floats per vertex
-      0                          // offset
-  };
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.setVertexBindingDescriptionCount(1);
-  vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
-  vertexInputInfo.setVertexAttributeDescriptionCount(1);
-  vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
-
-  vk::DynamicState dynStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-  vk::PipelineDynamicStateCreateInfo dynamicInfo;
-  dynamicInfo.setDynamicStates(dynStates);
-
-  vk::PipelineViewportStateCreateInfo viewportInfo{};
-  viewportInfo.viewportCount = viewportInfo.scissorCount = 1;
-
-  vk::PipelineInputAssemblyStateCreateInfo iaInfo;
-  iaInfo.topology = vk::PrimitiveTopology::eLineStrip;
-
-  vk::PipelineRasterizationStateCreateInfo rsInfo{};
-  rsInfo.lineWidth = 1.0f;
-
-  vk::PipelineMultisampleStateCreateInfo msInfo{};
-  msInfo.rasterizationSamples = vk.rasterizationSamples;
-
-  vk::PipelineDepthStencilStateCreateInfo dsInfo = vk.sceneDS;
-
-  // SrcAlpha, One
-  vk::PipelineColorBlendStateCreateInfo blendInfo{};
-  vk::PipelineColorBlendAttachmentState blend;
-  blend.blendEnable         = true;
-  blend.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  blend.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
-  blend.colorBlendOp        = vk::BlendOp::eAdd;
-  blend.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  blend.dstAlphaBlendFactor = vk::BlendFactor::eZero;
-  blend.alphaBlendOp        = vk::BlendOp::eAdd;
-  blend.colorWriteMask      = vk::ColorComponentFlagBits::eR
-                       | vk::ColorComponentFlagBits::eG
-                       | vk::ColorComponentFlagBits::eB
-                       | vk::ColorComponentFlagBits::eA;
-  blendInfo.attachmentCount = 1;
-  blendInfo.pAttachments    = &blend;
-
-  vk::GraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.pColorBlendState    = &blendInfo;
-  pipelineInfo.pInputAssemblyState = &iaInfo;
-  pipelineInfo.pRasterizationState = &rsInfo;
-  pipelineInfo.pMultisampleState   = &msInfo;
-  pipelineInfo.pDepthStencilState  = &dsInfo;
-  pipelineInfo.pViewportState      = &viewportInfo;
-  pipelineInfo.setStages(stageInfo);
-  pipelineInfo.setPVertexInputState(&vertexInputInfo);
-  pipelineInfo.setPDynamicState(&dynamicInfo);
-
-  pipelineInfo.layout = pipelineLayout_;
-
-  pipelineInfo.renderPass = vk.rp;
-
-  vk::Result res;
-  std::tie(res, pipeline_) = dev.createGraphicsPipeline(pipelineCache_, pipelineInfo);
-
-  dev.destroyShaderModule(vertShaderModule);
-  dev.destroyShaderModule(fragShaderModule);
-
-  if(res != vk::Result::eSuccess)
-  {
-    qFatal().nospace() << "Failed to create graphics pipeline: " << magic_enum::enum_name(res);
-  }
+  uniformsSetLayout_ = dsl.at(0);
+  dataSetLayout_     = dsl.at(1);
 
   // Now just need some descriptors.
   vk::DescriptorPoolSize descPoolSizes[] = {
@@ -368,6 +269,9 @@ void PlotLineSeries::releaseResources()
     dev.unmapMemory(ubufMem_);
     dev.free(ubufMem_);
     dev.destroy(ubuf_);
+
+    dev.destroy(uniformsSetLayout_);
+    dev.destroy(dataSetLayout_);
   }
 
   AbstractPlotSeries::releaseResources();
