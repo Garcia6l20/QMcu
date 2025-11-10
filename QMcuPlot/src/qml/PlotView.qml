@@ -141,6 +141,7 @@ Rectangle {
                 color: "transparent"
 
                 layer.enabled: true
+                visible: false // drawn back after masking by rectMask
 
                 Repeater {
                     model: plot.pointInfos
@@ -152,7 +153,7 @@ Rectangle {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            radius: 4
+                            radius: 6
                             width: 2 * radius
                             height: 2 * radius
                             border.color: Qt.darker(parent.modelData.series.lineColor, 4)
@@ -199,11 +200,9 @@ Rectangle {
             // clip plot overlay content into its wrapper bounds
             Rectangle {
                 id: rectMask
-                // TODO: border and radius not handled by shader
                 radius: wrapper.radius
                 anchors.fill: parent
                 anchors.margins: wrapper.border.width
-                visible: false
                 layer.enabled: true
                 layer.samplerName: "maskSource"
                 layer.effect: ShaderEffect {
