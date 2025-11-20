@@ -17,12 +17,35 @@ public:
     }
   }
 
-  void addStage(QString const&          shaderResource,
-                vk::ShaderStageFlagBits stage,
-                std::string_view        name = "main")
+  auto& addStage(QString const&          shaderResource,
+                 vk::ShaderStageFlagBits stage,
+                 std::string_view        name = "main")
   {
     auto& module = shaderModules.emplace_back(vk.createShaderModule(shaderResource));
-    stageInfos.emplace_back(vk::PipelineShaderStageCreateFlags{}, stage, module, name.data());
+    return stageInfos.emplace_back(vk::PipelineShaderStageCreateFlags{},
+                                   stage,
+                                   module,
+                                   name.data());
+  }
+
+  auto allocateBuffer(size_t size, vk::BufferUsageFlagBits usage, vk::MemoryPropertyFlags memProps)
+  {
+    vk::BufferCreateInfo bufferInfo{};
+    bufferInfo.setSize(size);
+    bufferInfo.setUsage(usage);
+
+    auto buf          = vk.dev.createBuffer(bufferInfo);
+    auto memReq       = vk.dev.getBufferMemoryRequirements(buf);
+    auto memTypeIndex = vk.findMemoryTypeIndex(memReq, memProps);
+    if(memTypeIndex == UINT32_MAX)
+      qFatal("Failed to find host visible and coherent memory type");
+
+    vk::MemoryAllocateInfo allocInfo{};
+    allocInfo.setAllocationSize(memReq.size);
+    allocInfo.setMemoryTypeIndex(memTypeIndex);
+
+    auto mem = vk.dev.allocateMemory(allocInfo);
+    return std::make_tuple(allocInfo.allocationSize, buf, mem);
   }
 
   auto allocateDynamicBuffer(size_t                  size,
@@ -31,27 +54,8 @@ public:
   {
     const size_t allocPerBuf =
         aligned(size, vk.physDevProps.limits.minUniformBufferOffsetAlignment);
-
-    vk::BufferCreateInfo bufferInfo{};
-    bufferInfo.setSize(vk.framesInFlight * allocPerBuf);
-    bufferInfo.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
-    auto buf = vk.dev.createBuffer(bufferInfo);
-
-    auto memReq       = vk.dev.getBufferMemoryRequirements(buf);
-    auto memTypeIndex = vk.findMemoryTypeIndex(memReq,
-                                               vk::MemoryPropertyFlagBits::eHostVisible
-                                                   | vk::MemoryPropertyFlagBits::eHostCoherent);
-    if(memTypeIndex == UINT32_MAX)
-      qFatal("Failed to find host visible and coherent memory type");
-
-    vk::MemoryAllocateInfo allocInfo{};
-    allocInfo.setAllocationSize(vk.framesInFlight * allocPerBuf);
-    allocInfo.setMemoryTypeIndex(memTypeIndex);
-    auto mem = vk.dev.allocateMemory(allocInfo);
-
-    vk.dev.bindBufferMemory(buf, mem, 0);
-
-    return std::make_tuple(allocPerBuf, buf, mem);
+    return std::tuple_cat(std::tuple(allocPerBuf),
+                          allocateBuffer(vk.framesInFlight * allocPerBuf, usage, memProps));
   }
 
   [[nodiscard("you should keep those objects in your context")]] auto build()
@@ -70,13 +74,22 @@ public:
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.setSetLayouts(setLayouts);
 
+    if(pushConstantsRange.size != 0)
+    {
+      pipelineLayoutInfo.setPushConstantRangeCount(1);
+      pipelineLayoutInfo.setPPushConstantRanges(&pushConstantsRange);
+    }
+
     vk::PipelineLayout layout = vk.dev.createPipelineLayout(pipelineLayoutInfo);
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.setVertexBindingDescriptionCount(1);
-    vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
-    vertexInputInfo.setVertexAttributeDescriptionCount(1);
-    vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
+    if(vertexBinding.stride != 0)
+    {
+      vertexInputInfo.setVertexBindingDescriptionCount(1);
+      vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
+      vertexInputInfo.setVertexAttributeDescriptionCount(1);
+      vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
+    }
 
     vk::PipelineColorBlendStateCreateInfo blendInfo{};
     blendInfo.attachmentCount = 1;
@@ -133,6 +146,8 @@ public:
   vk::PipelineMultisampleStateCreateInfo   multisampleInfo{{}, vk.rasterizationSamples};
   vk::PipelineDepthStencilStateCreateInfo  depthStencilInfo = vk.sceneDS;
 
+  vk::PushConstantRange pushConstantsRange{};
+
   vk::PipelineColorBlendAttachmentState blendAttachement = []
   {
     vk::PipelineColorBlendAttachmentState blend;
@@ -153,9 +168,7 @@ public:
   std::vector<vk::DynamicState> dynStates = {vk::DynamicState::eViewport,
                                              vk::DynamicState::eScissor};
 
-  vk::VertexInputBindingDescription   vertexBinding{0,
-                                                  2 * sizeof(float),
-                                                  vk::VertexInputRate::eVertex};
+  vk::VertexInputBindingDescription   vertexBinding{0, 0, vk::VertexInputRate::eVertex};
   vk::VertexInputAttributeDescription vertexAttr = {
       0,                         // location
       0,                         // binding

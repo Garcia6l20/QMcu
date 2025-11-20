@@ -134,7 +134,7 @@ bool PlotLineSeries::initialize()
 
   ubo.tid = ctx_.data.type;
 
-  auto& vk  = vkContext();
+  auto& vk = vkContext();
 
   auto builder = VulkanPipelineBuilder(vk);
 
@@ -174,10 +174,13 @@ bool PlotLineSeries::initialize()
 
   Q_ASSERT(vk.framesInFlight <= 3);
 
-  std::tie(allocPerUbuf_, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
+  size_t ubufSize;
+  std::tie(allocPerUbuf_, ubufSize, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
       sizeof(ubo),
       vk::BufferUsageFlagBits::eUniformBuffer,
       vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  
+  vk.dev.bindBufferMemory(ubuf_, ubufMem_, 0);
 
   vk::DescriptorSetLayoutBinding descSetLayoutBinding{};
 

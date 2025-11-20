@@ -8,6 +8,8 @@
 
 #include <vulkansquirclerenderer.h>
 
+#include <QMcu/Plot/VK/VulkanPipelineBuilder.hpp>
+
 #include <QFile>
 
 static const float vertices[] = {-1, -1, 1, -1, -1, 1, 1, 1};
@@ -75,39 +77,63 @@ void SquircleRenderer::prepareShader(Stage stage)
   }
 }
 
+#define USE_BUILDER
+
 bool SquircleRenderer::initialize()
 {
   auto& vk = vkContext();
-
-  if(ver_.isEmpty())
-    prepareShader(VertexStage);
-  if(frag_.isEmpty())
-    prepareShader(FragmentStage);
 
   Q_ASSERT(vk.framesInFlight <= 3);
 
   VkResult err;
 
-  vk::BufferCreateInfo bufferInfo{};
+#ifdef USE_BUILDER
+  auto builder = VulkanPipelineBuilder{vk};
+  builder.inputAssemblyInfo.setTopology(vk::PrimitiveTopology::eTriangleStrip);
+  builder.addStage(":/scenegraph/vulkanunderqml/squircle.vert.spv",
+                   vk::ShaderStageFlagBits::eVertex);
+  builder.addStage(":/scenegraph/vulkanunderqml/squircle.frag.spv",
+                   vk::ShaderStageFlagBits::eFragment);
+#else
+  if(ver_.isEmpty())
+    prepareShader(VertexStage);
+  if(frag_.isEmpty())
+    prepareShader(FragmentStage);
+
+  vk::BufferCreateInfo   bufferInfo{};
+  vk::MemoryAllocateInfo allocInfo{};
+  vk::MemoryRequirements memReq;
+  uint32_t               memTypeIndex;
+#endif
+
+#ifdef USE_BUILDER
+  size_t verticesBufferSize;
+  std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.allocateBuffer(
+      sizeof(vertices),
+      vk::BufferUsageFlagBits::eVertexBuffer,
+      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+#else
   bufferInfo.setSize(sizeof(vertices));
   bufferInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
   vbuf_ = vk.dev.createBuffer(bufferInfo);
 
-  vk::MemoryRequirements memReq = vk.dev.getBufferMemoryRequirements(vbuf_);
-  vk::MemoryAllocateInfo allocInfo;
+  memReq = vk.dev.getBufferMemoryRequirements(vbuf_);
   allocInfo.setAllocationSize(memReq.size);
 
-  uint32_t memTypeIndex = vk.findMemoryTypeIndex(memReq,
-                                                 vk::MemoryPropertyFlagBits::eHostVisible
-                                                     | vk::MemoryPropertyFlagBits::eHostCoherent);
+  memTypeIndex = vk.findMemoryTypeIndex(memReq,
+                                        vk::MemoryPropertyFlagBits::eHostVisible
+                                            | vk::MemoryPropertyFlagBits::eHostCoherent);
   if(memTypeIndex == UINT32_MAX)
     qFatal("Failed to find host visible and coherent memory type");
 
   allocInfo.setMemoryTypeIndex(memTypeIndex);
-  vbufMem_ = vk.dev.allocateMemory(allocInfo);
+  vbufMem_                  = vk.dev.allocateMemory(allocInfo);
+  size_t verticesBufferSize = allocInfo.allocationSize;
+#endif
 
   void* p = nullptr;
-  p       = vk.dev.mapMemory(vbufMem_, 0, allocInfo.allocationSize);
+  p       = vk.dev.mapMemory(vbufMem_, 0, verticesBufferSize);
   if(!p)
     qFatal("Failed to map vertex buffer memory: %d", err);
   memcpy(p, vertices, sizeof(vertices));
@@ -127,6 +153,13 @@ bool SquircleRenderer::initialize()
   // watch out for the buffer offset alignment requirement, which may be as
   // large as 256 bytes.
 
+#ifdef USE_BUILDER
+  size_t ubufTotalSize;
+  std::tie(allocPerUbuf_, ubufTotalSize, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
+      UBUF_SIZE,
+      vk::BufferUsageFlagBits::eUniformBuffer,
+      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+#else
   allocPerUbuf_ = aligned(UBUF_SIZE, vk.physDevProps.limits.minUniformBufferOffsetAlignment);
 
   bufferInfo.setSize(vk.framesInFlight * allocPerUbuf_);
@@ -140,15 +173,14 @@ bool SquircleRenderer::initialize()
   if(memTypeIndex == UINT32_MAX)
     qFatal("Failed to find host visible and coherent memory type");
 
-  allocInfo.setAllocationSize(vk.framesInFlight * allocPerUbuf_);
+  allocInfo.setAllocationSize(memReq.size);
   allocInfo.setMemoryTypeIndex(memTypeIndex);
   ubufMem_ = vk.dev.allocateMemory(allocInfo);
+#endif
 
   vk.dev.bindBufferMemory(ubuf_, ubufMem_, 0);
 
   // Now onto the pipeline.
-
-  pipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
 
   vk::DescriptorSetLayoutBinding descLayoutBinding{};
   descLayoutBinding.setBinding(0);
@@ -157,7 +189,27 @@ bool SquircleRenderer::initialize()
   descLayoutBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex
                                   | vk::ShaderStageFlagBits::eFragment);
 
+#ifdef USE_BUILDER
+  builder.descSetLayoutBindings.push_back(descLayoutBinding);
+
+  builder.vertexBinding.setStride(2 * sizeof(float));
+  builder.vertexAttr.setFormat(vk::Format::eR32G32Sfloat);
+
+  vk::Result res;
+
+  auto const& [pipeline, cache, layout, setLayouts] = builder.build();
+  pipeline_                                         = pipeline;
+  pipelineCache_                                    = cache;
+  pipelineLayout_                                   = layout;
+  resLayout_                                        = setLayouts.at(0);
+#else
+
+  pipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
+
   vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+  vk::GraphicsPipelineCreateInfo    pipelineInfo{};
+  resLayout_ = vk.dev.createDescriptorSetLayout(layoutInfo);
+
   layoutInfo.setBindingCount(1);
   layoutInfo.setPBindings(&descLayoutBinding);
   resLayout_ = vk.dev.createDescriptorSetLayout(layoutInfo);
@@ -166,8 +218,6 @@ bool SquircleRenderer::initialize()
   pipelineLayoutInfo.setSetLayoutCount(1);
   pipelineLayoutInfo.setPSetLayouts(&resLayout_);
   pipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
-
-  vk::GraphicsPipelineCreateInfo pipelineInfo{};
 
   vk::ShaderModuleCreateInfo shaderInfo;
   shaderInfo.setCodeSize(ver_.size());
@@ -179,7 +229,6 @@ bool SquircleRenderer::initialize()
   vk::ShaderModule fragShaderModule = vk.dev.createShaderModule(shaderInfo);
 
   vk::PipelineShaderStageCreateInfo stageInfo[2]{};
-  memset(&stageInfo, 0, sizeof(stageInfo));
   stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
   stageInfo[0].setModule(vertShaderModule);
   stageInfo[0].setPName("main");
@@ -223,12 +272,11 @@ bool SquircleRenderer::initialize()
   pipelineInfo.pRasterizationState = &rsInfo;
 
   vk::PipelineMultisampleStateCreateInfo msInfo{};
-  msInfo.rasterizationSamples    = vk::SampleCountFlagBits::e1;
+  msInfo.rasterizationSamples    = vk.rasterizationSamples;
   pipelineInfo.pMultisampleState = &msInfo;
 
   vk::PipelineDepthStencilStateCreateInfo dsInfo{};
   pipelineInfo.pDepthStencilState = &dsInfo;
-
   // SrcAlpha, One
   vk::PipelineColorBlendStateCreateInfo blendInfo{};
   vk::PipelineColorBlendAttachmentState blend;
@@ -261,6 +309,7 @@ bool SquircleRenderer::initialize()
   {
     qFatal("Failed to create graphics pipeline: %d", err);
   }
+#endif
 
   // Now just need some descriptors.
   vk::DescriptorPoolSize descPoolSizes[] = {

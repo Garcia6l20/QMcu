@@ -12,10 +12,12 @@ macro(vulkan_compile_shaders target)
   set(_outputs)
   foreach(shader ${ARGS_SOURCES})
     get_filename_component(name ${shader} NAME)
+    get_filename_component(stage ${shader} LAST_EXT)
+    string(SUBSTRING ${stage} 1 -1 stage)
     set(output ${CMAKE_CURRENT_BINARY_DIR}/shaders/${name}.spv)
     list(APPEND _outputs ${output})
     add_custom_command(OUTPUT ${output}
-      COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${shader} -o ${output}
+      COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=${stage} --target-env=vulkan1.4 ${shader} -o ${output}
       DEPENDS ${shader}
       COMMENT "Compiling ${shader}...")
     set_source_files_properties(${output} PROPERTIES QT_RESOURCE_ALIAS shaders/${name}.spv)

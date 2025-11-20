@@ -66,7 +66,15 @@ struct VulkanContext
 
   inline QByteArray getShaderData(QString const& resourceName)
   {
-    QFile f(QString(":/qmcu/plot/shaders/%1").arg(resourceName));
+    QFile f;
+    if(not resourceName.startsWith(":"))
+    {
+      f.setFileName(QString(":/qmcu/plot/shaders/%1").arg(resourceName));
+    }
+    else
+    {
+      f.setFileName(resourceName);
+    }
     if(!f.open(QIODevice::ReadOnly))
     {
       qFatal("Failed to read shader %s", qPrintable(resourceName));

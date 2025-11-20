@@ -68,6 +68,19 @@ PlotScene::PlotScene(QQuickWindow* win) : QSGRenderNode(), win_(win)
 {
 }
 
+PlotScene::~PlotScene()
+{
+  releaseResources();
+
+  for(auto* r : renderers_)
+  {
+    if(r->parent() == nullptr)
+    {
+      delete r;
+    }
+  }
+}
+
 std::vector<glm::vec2>
     makeRoundedRectVertices(float width, float height, float radius, int segmentsPerCorner)
 {
@@ -100,14 +113,26 @@ std::vector<glm::vec2>
   return verts;
 }
 
+#define ENABLE_STENCIL_MASK
+
 void PlotScene::setupStencilPipeline()
 {
+#ifdef ENABLE_STENCIL_MASK
   auto& vk  = vk_;
   auto& dev = vk.dev;
 
   stencilPipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
 
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+
+  vk::PushConstantRange pushRange{};
+  pushRange.stageFlags = vk::ShaderStageFlagBits::eVertex
+                       | vk::ShaderStageFlagBits::eGeometry
+                       | vk::ShaderStageFlagBits::eFragment;
+  pushRange.offset = 0;
+  pushRange.size   = sizeof(stencilUbo);
+  pipelineLayoutInfo.setPushConstantRanges(pushRange);
+  
   stencilPipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
 
   auto vertShaderModule = vk.createShaderModule("stencil.vert.spv");
@@ -115,7 +140,6 @@ void PlotScene::setupStencilPipeline()
   auto fragShaderModule = vk.createShaderModule("stencil.frag.spv");
 
   vk::PipelineShaderStageCreateInfo stageInfo[3]{};
-  memset(&stageInfo, 0, sizeof(stageInfo));
   stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
   stageInfo[0].setModule(vertShaderModule);
   stageInfo[0].setPName("main");
@@ -215,35 +239,42 @@ void PlotScene::setupStencilPipeline()
   vk.stencilTest.reference   = 1;
 
   vk.sceneDS.front = vk.sceneDS.back = vk.stencilTest;
+#endif
 }
 
 void PlotScene::prepare()
 {
-  // We are not prepared for anything other than running with the RHI and its Vulkan backend.
-  QSGRendererInterface* rif = win_->rendererInterface();
-  Q_ASSERT(rif->graphicsApi() == QSGRendererInterface::Vulkan);
+  if(not initialized_)
+  {
+    // We are not prepared for anything other than running with the RHI and its Vulkan backend.
+    QSGRendererInterface* rif = win_->rendererInterface();
+    Q_ASSERT(rif->graphicsApi() == QSGRendererInterface::Vulkan);
 
-  QVulkanInstance* inst = reinterpret_cast<QVulkanInstance*>(
-      rif->getResource(win_, QSGRendererInterface::VulkanInstanceResource));
-  Q_ASSERT(inst && inst->isValid());
+    QVulkanInstance* inst = reinterpret_cast<QVulkanInstance*>(
+        rif->getResource(win_, QSGRendererInterface::VulkanInstanceResource));
+    Q_ASSERT(inst && inst->isValid());
 
-  vk_.phyDev = *reinterpret_cast<VkPhysicalDevice*>(
-      rif->getResource(win_, QSGRendererInterface::PhysicalDeviceResource));
-  vk_.dev =
-      *reinterpret_cast<VkDevice*>(rif->getResource(win_, QSGRendererInterface::DeviceResource));
-  Q_ASSERT(vk_.phyDev && vk_.dev);
+    auto& vk = vk_;
 
-  vk_.rp = *reinterpret_cast<VkRenderPass*>(
-      rif->getResource(win_, QSGRendererInterface::RenderPassResource));
-  Q_ASSERT(vk_.rp);
+    vk.phyDev = *reinterpret_cast<VkPhysicalDevice*>(
+        rif->getResource(win_, QSGRendererInterface::PhysicalDeviceResource));
 
-  vk_.physDevProps    = vk_.phyDev.getProperties();
-  vk_.physDevMemProps = vk_.phyDev.getMemoryProperties();
-  vk_.framesInFlight  = win_->graphicsStateInfo().framesInFlight;
+    vk.dev =
+        *reinterpret_cast<VkDevice*>(rif->getResource(win_, QSGRendererInterface::DeviceResource));
+    Q_ASSERT(vk.phyDev && vk.dev);
 
-  setupStencilPipeline();
+    vk.rp = *reinterpret_cast<VkRenderPass*>(
+        rif->getResource(win_, QSGRendererInterface::RenderPassResource));
+    Q_ASSERT(vk.rp);
 
-  initialized_ = true;
+    vk.physDevProps    = vk.phyDev.getProperties();
+    vk.physDevMemProps = vk.phyDev.getMemoryProperties();
+    vk.framesInFlight  = win_->graphicsStateInfo().framesInFlight;
+
+    setupStencilPipeline();
+
+    initialized_ = true;
+  }
 }
 
 void PlotScene::render(const RenderState* state)
@@ -291,6 +322,7 @@ void PlotScene::render(const RenderState* state)
   cb.setViewport(0, 1, &vk.viewPort);
   cb.setScissor(0, 1, &vk.scissor);
 
+#ifdef ENABLE_STENCIL_MASK
   { // compute stencil mask
     cb.bindPipeline(vk::PipelineBindPoint::eGraphics, stencilPipeline_);
 
@@ -306,6 +338,7 @@ void PlotScene::render(const RenderState* state)
                      &stencilUbo);
     cb.draw(4, 1, 0, 0);
   }
+#endif
 
   for(auto* r : renderers_)
   {

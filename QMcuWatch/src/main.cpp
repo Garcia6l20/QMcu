@@ -19,12 +19,12 @@ int main(int argc, char** argv)
 {
   QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
 
-  // Fix missing window header & borders on Linux Wayland
-  if(qgetenv("XDG_SESSION_TYPE") == "wayland")
-  {
-    qDebug("Force Wayland to use XCB");
-    qputenv("QT_QPA_PLATFORM", "xcb");
-  }
+  // // Fix missing window header & borders on Linux Wayland
+  // if(qgetenv("XDG_SESSION_TYPE") == "wayland")
+  // {
+  //   qDebug("Force Wayland to use XCB");
+  //   qputenv("QT_QPA_PLATFORM", "xcb");
+  // }
 
   // setup format for nice rendering hints
   qputenv("QSG_ANTIALIASING_METHOD",
@@ -73,6 +73,12 @@ int main(int argc, char** argv)
 
   parser.process(app);
 
+  if(parser.positionalArguments().empty())
+  {
+    qWarning() << parser.helpText();
+    return -1;
+  }
+
   QQmlApplicationEngine engine;
 #ifndef FORCE_DEVELOPMENT_QML_DIR
   engine.addImportPath("/usr/lib/qt6/qml");
@@ -96,8 +102,7 @@ int main(int argc, char** argv)
   if(parser.isSet(configOpt))
   {
     QFile fin{parser.value(configOpt)};
-    fin.open(QIODevice::ReadOnly);
-    if(not fin.isOpen())
+    if(not fin.open(QIODevice::ReadOnly))
     {
       qFatal() << "Fail to open configuration:" << fin.errorString();
     }
@@ -110,7 +115,10 @@ int main(int argc, char** argv)
     ctx.setContextProperty("config", config.object());
   }
 
-  engine.load(parser.positionalArguments()[0]);
+  const auto scriptPath = parser.positionalArguments()[0];
+  QFileInfo info(scriptPath);
+  QDir::setCurrent(info.absoluteDir().absolutePath());
+  engine.load(info.fileName());
 
   return app.exec();
 }

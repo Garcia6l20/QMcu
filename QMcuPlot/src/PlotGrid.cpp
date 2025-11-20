@@ -37,6 +37,11 @@ bool PlotGrid::initialize()
   builder.addStage("grid.geom.spv", vk::ShaderStageFlagBits::eGeometry);
   builder.addStage("grid.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
+  builder.pushConstantsRange.setStageFlags(vk::ShaderStageFlagBits::eVertex
+                                           | vk::ShaderStageFlagBits::eGeometry
+                                           | vk::ShaderStageFlagBits::eFragment);
+  builder.pushConstantsRange.setSize(sizeof(push_));
+
   std::vector<vk::DescriptorSetLayout> dsl;
   std::tie(pipeline_, pipelineCache_, pipelineLayout_, dsl) = builder.build();
 

@@ -32,37 +32,10 @@ void VulkanSquircle::setT(qreal t)
   emit tChanged();
 }
 
-// The safe way to release custom graphics resources is to both connect to
-// sceneGraphInvalidated() and implement releaseResources(). To support
-// threaded render loops the latter performs the SquircleRenderer destruction
-// via scheduleRenderJob(). Note that the VulkanSquircle may be gone by the time
-// the QRunnable is invoked.
-
-// void VulkanSquircle::cleanup()
-// {
-//   delete m_renderer;
-//   m_renderer = nullptr;
-// }
-
-class CleanupJob : public QRunnable
-{
-public:
-  CleanupJob(SquircleRenderer* renderer) : m_renderer(renderer)
-  {
-  }
-  void run() override
-  {
-    delete m_renderer;
-  }
-
-private:
-  SquircleRenderer* m_renderer;
-};
-
 void VulkanSquircle::releaseResources()
 {
-  window()->scheduleRenderJob(new CleanupJob(m_renderer), QQuickWindow::BeforeSynchronizingStage);
   m_renderer = nullptr;
+  m_vkRenderer = nullptr;
 }
 
 QSGNode* VulkanSquircle::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
@@ -73,7 +46,7 @@ QSGNode* VulkanSquircle::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
     node = m_vkRenderer = new PlotScene(window());
     m_renderer          = new SquircleRenderer;
     m_vkRenderer->addRenderer(m_renderer);
-    // m_vkRenderer->addRenderer(new PlotGrid(this));
+    // m_vkRenderer->addRenderer(new PlotGrid);
 
     window()->setColor(QColorConstants::Black);
   }

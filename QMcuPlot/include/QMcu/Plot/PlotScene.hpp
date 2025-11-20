@@ -18,7 +18,7 @@ class PlotScene : public QSGRenderNode
 {
 public:
   PlotScene(QQuickWindow* win);
-  virtual ~PlotScene() = default;
+  virtual ~PlotScene();
 
   void setBoundingRect(const QRectF& boundingRect)
   {

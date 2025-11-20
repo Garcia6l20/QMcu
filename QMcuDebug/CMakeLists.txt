@@ -38,6 +38,9 @@ target_include_directories(QMcuDebug
     # MOC does not use this path
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/QMcu/Debug>
 )
+
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
+find_package(Qt6 COMPONENTS GraphsPrivate REQUIRED)
 target_link_libraries(QMcuDebug
   PUBLIC
     Qt6::Quick Qt6::Qml Qt6::Graphs
