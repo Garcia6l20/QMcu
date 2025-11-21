@@ -179,7 +179,7 @@ bool PlotLineSeries::initialize()
       sizeof(ubo),
       vk::BufferUsageFlagBits::eUniformBuffer,
       vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  
+
   vk.dev.bindBufferMemory(ubuf_, ubufMem_, 0);
 
   vk::DescriptorSetLayoutBinding descSetLayoutBinding{};
@@ -213,7 +213,7 @@ bool PlotLineSeries::initialize()
       {vk::DescriptorType::eUniformBufferDynamic, 1},
       {vk::DescriptorType::eStorageBufferDynamic, 1},
   };
-  vk::DescriptorPoolCreateInfo descPoolInfo{};
+  vk::DescriptorPoolCreateInfo descPoolInfo{vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet};
   descPoolInfo.maxSets = 2;
   descPoolInfo.setPoolSizes(descPoolSizes);
   descriptorPool_ = vk.dev.createDescriptorPool(descPoolInfo);
@@ -269,12 +269,15 @@ void PlotLineSeries::releaseResources()
     dev.destroy(pipelineLayout_);
     dev.destroy(pipelineCache_);
 
-    dev.unmapMemory(ubufMem_);
     dev.free(ubufMem_);
     dev.destroy(ubuf_);
 
     dev.destroy(uniformsSetLayout_);
     dev.destroy(dataSetLayout_);
+
+    std::array descSets{ubufDescriptor_, sbufDescriptor_};
+    dev.freeDescriptorSets(descriptorPool_, descSets);
+    dev.destroy(descriptorPool_);
   }
 
   AbstractPlotSeries::releaseResources();

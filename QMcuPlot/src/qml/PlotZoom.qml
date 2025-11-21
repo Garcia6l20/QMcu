@@ -62,7 +62,7 @@ Item {
         acceptedModifiers: Qt.NoModifier
         acceptedButtons: Qt.LeftButton
         onTranslationChanged: event => {
-            console.debug(`panHandler: ${event}`);
+            // console.debug(`panHandler: ${event}`);
             root.plot.pan(event.x, event.y);
         }
     }

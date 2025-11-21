@@ -69,7 +69,7 @@ protected:
   bool initializePlotContext(PlotContext& ctx) final
   {
     const size_t n_samples = /* 2 * */ sampleRate_ * duration_;
-    mapped_                = createMappedArrayBuffer<double>(n_samples);
+    mapped_                = createMappedStorageBuffer<double>(n_samples);
     const double pulse     = frequency_ / double(sampleRate_);
     std::ranges::generate(mapped_,
                           [&, ii = 0] mutable

@@ -126,13 +126,11 @@ void PlotScene::setupStencilPipeline()
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 
   vk::PushConstantRange pushRange{};
-  pushRange.stageFlags = vk::ShaderStageFlagBits::eVertex
-                       | vk::ShaderStageFlagBits::eGeometry
-                       | vk::ShaderStageFlagBits::eFragment;
-  pushRange.offset = 0;
-  pushRange.size   = sizeof(stencilUbo);
+  pushRange.stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eGeometry;
+  pushRange.offset     = 0;
+  pushRange.size       = sizeof(stencilUbo);
   pipelineLayoutInfo.setPushConstantRanges(pushRange);
-  
+
   stencilPipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
 
   auto vertShaderModule = vk.createShaderModule("stencil.vert.spv");
@@ -150,21 +148,7 @@ void PlotScene::setupStencilPipeline()
   stageInfo[2].setModule(fragShaderModule);
   stageInfo[2].setPName("main");
 
-  vk::VertexInputBindingDescription   vertexBinding{0,
-                                                  2 * sizeof(float),
-                                                  vk::VertexInputRate::eVertex};
-  vk::VertexInputAttributeDescription vertexAttr = {
-      0,                         // location
-      0,                         // binding
-      vk::Format::eR32G32Sfloat, // 'vertices' only has 2 floats per vertex
-      0                          // offset
-  };
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.setVertexBindingDescriptionCount(1);
-  vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
-  vertexInputInfo.setVertexAttributeDescriptionCount(1);
-  vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
-
+  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{}; // dummy - no vertex input
   vk::DynamicState dynStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
   vk::PipelineDynamicStateCreateInfo dynamicInfo;
   dynamicInfo.setDynamicStates(dynStates);
@@ -219,6 +203,7 @@ void PlotScene::setupStencilPipeline()
 
   vk.dev.destroyShaderModule(vertShaderModule);
   vk.dev.destroyShaderModule(fragShaderModule);
+  vk.dev.destroyShaderModule(geomShaderModule);
 
   if(res != vk::Result::eSuccess)
   {
@@ -361,6 +346,16 @@ void PlotScene::releaseResources()
       r->initialized_ = false;
     }
   }
+
+#ifdef ENABLE_STENCIL_MASK
+  auto& vk = vk_;
+  if(stencilPipeline_)
+  {
+    vk.dev.destroy(stencilPipeline_);
+    vk.dev.destroy(stencilPipelineCache_);
+    vk.dev.destroy(stencilPipelineLayout_);
+  }
+#endif
 }
 
 QSGRenderNode::RenderingFlags PlotScene::flags() const
