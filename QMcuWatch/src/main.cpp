@@ -15,8 +15,29 @@
 #include <QQuickWindow>
 #include <QSurfaceFormat>
 
+QStringList
+    patchPaths(QStringList const& expectedPaths, QString const& suffix, QStringList const originals)
+{
+  QStringList newPaths;
+  newPaths.reserve(expectedPaths.size());
+  for(auto const& ep : expectedPaths)
+  {
+    newPaths.append(ep + "/" + suffix);
+  }
+  for(auto const& op : originals)
+  {
+    if(not newPaths.contains(op))
+    {
+      newPaths.append(op);
+    }
+  }
+  return newPaths;
+}
+
 int main(int argc, char** argv)
 {
+  qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message}");
+
   QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
 
   // // Fix missing window header & borders on Linux Wayland
@@ -35,30 +56,17 @@ int main(int argc, char** argv)
   fmt.setSamples(8);
   QSurfaceFormat::setDefaultFormat(fmt);
 
-  {
-    QStringList paths = QCoreApplication::libraryPaths();
+  const auto expectedBasePaths = QStringList()
+#ifdef QMCU_FORCE_QML_DEV_PLUGINS
+                              << QMCU_FORCE_QML_DEV_PLUGINS
+#endif
+                              << QDir::homePath()
+                               + "/.local/lib/qt6"
+                              << "/usr/local/lib/qt6"
+                              << "/usr/lib/qt6";
 
-    qDebug() << "Initial plugin paths:" << paths;
-
-    for(auto const& p : QStringList()
-                            << "/usr/lib/qt6/plugins"
-                            << "/usr/local/lib/qt6/plugins"
-                            << QDir::homePath()
-                            + "/.local/lib/qt6/plugins")
-    {
-      if(/* QDir(p).exists() and */ not paths.contains(p))
-      {
-        paths.append(p);
-      }
-    }
-
-    QCoreApplication::setLibraryPaths(paths);
-
-    qDebug() << "Using plugin paths:" << paths;
-  }
-
-  qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message}");
-  // qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message} (%{file}:%{line})");
+  QCoreApplication::setLibraryPaths(
+      patchPaths(expectedBasePaths, "plugins", QCoreApplication::libraryPaths()));
 
   QGuiApplication app(argc, argv);
   app.setOrganizationName("tpl");
@@ -80,13 +88,7 @@ int main(int argc, char** argv)
   }
 
   QQmlApplicationEngine engine;
-#ifndef FORCE_DEVELOPMENT_QML_DIR
-  engine.addImportPath("/usr/lib/qt6/qml");
-  engine.addImportPath("/usr/local/lib/qt6/qml");
-  engine.addImportPath(QDir::homePath() + "/.local/lib/qt6/qml");
-#else
-  engine.addImportPath(FORCE_DEVELOPMENT_QML_DIR);
-#endif
+  engine.setImportPathList(patchPaths(expectedBasePaths, "qml", engine.importPathList()));
 
   QObject::connect(
       &engine,
@@ -116,7 +118,7 @@ int main(int argc, char** argv)
   }
 
   const auto scriptPath = parser.positionalArguments()[0];
-  QFileInfo info(scriptPath);
+  QFileInfo  info(scriptPath);
   QDir::setCurrent(info.absoluteDir().absolutePath());
   engine.load(info.fileName());
 

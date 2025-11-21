@@ -36,8 +36,9 @@ install(TARGETS QMcuWatch QMcuWatchCounterExample
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if (FORCE_DEVELOPMENT_QML_DIR)
-  target_compile_definitions(QMcuWatch PRIVATE FORCE_DEVELOPMENT_QML_DIR="${QML_IMPORT_PATH}")
+if (QMCU_FORCE_QML_DEV_PLUGINS)
+  message(STATUS "QMcuWatch: devolvement plugins enforced")
+  target_compile_definitions(QMcuWatch PRIVATE QMCU_FORCE_QML_DEV_PLUGINS="${CMAKE_BINARY_DIR}")
 endif()
 
 option(QMCUWATCH_FULL_DEPLOY "Use full reusable deployment script (take care this will install a lot of stuff)" OFF)

@@ -34,6 +34,10 @@ macro(add_test_app target qml_main)
   )
   target_compile_definitions(${target} PRIVATE -DQML_MAIN="${qml_main}")
 
+  if (QMCU_FORCE_QML_DEV_PLUGINS)
+    target_compile_definitions(${target} PRIVATE QMCU_FORCE_QML_DEV_PLUGINS="${CMAKE_BINARY_DIR}")
+  endif()
+
 endmacro()
 
 add_test_app(spline-editor SplineEditor)

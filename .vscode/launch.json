@@ -12,10 +12,17 @@
       "cwd": "${command:cmake.getLaunchTargetDirectory}",
       "MIMode": "gdb",
       "environment": [
-        { "name": "ASAN_OPTIONS", "value": "abort_on_error=1" },
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "abort_on_error=1"
+        },
         {
           "name": "QML_IMPORT_PATH",
           "value": "${command:cmake.buildDirectory}/qml"
+        },
+        {
+          "name": "LD_LIBRARY_PATH",
+          "value": "${command:cmake.buildDirectory}/lib:${env:LD_LIBRARY_PATH}"
         }
       ],
       "args": [

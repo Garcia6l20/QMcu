@@ -5,6 +5,10 @@ project(QMcu VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(CPM)
@@ -40,6 +44,8 @@ qt_policy(SET QTP0001 NEW) # ':/qt/qml/' is the default resource prefix for QML 
 qt_policy(SET QTP0004 NEW) # Extra directories with QML files in a QML module need extra qmldir files.
 
 qt_standard_project_setup()
+
+option(QMCU_FORCE_QML_DEV_PLUGINS "Enforce using qml devolvement plugins" OFF)
 
 add_subdirectory(QMcuPlot)
 add_subdirectory(QMcuDebug)

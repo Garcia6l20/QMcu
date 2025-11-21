@@ -5,8 +5,28 @@
 #include <QLoggingCategory>
 #include <QQuickWindow>
 
+#include <QDir>
 #include <QExposeEvent>
 #include <QVulkanInstance>
+
+QStringList
+    patchPaths(QStringList const& expectedPaths, QString const& suffix, QStringList const originals)
+{
+  QStringList newPaths;
+  newPaths.reserve(expectedPaths.size());
+  for(auto const& ep : expectedPaths)
+  {
+    newPaths.append(ep + "/" + suffix);
+  }
+  for(auto const& op : originals)
+  {
+    if(not newPaths.contains(op))
+    {
+      newPaths.append(op);
+    }
+  }
+  return newPaths;
+}
 
 int main(int argc, char** argv)
 {
@@ -14,9 +34,25 @@ int main(int argc, char** argv)
 
   qSetMessagePattern("[%{time mm:ss.zzz}][%{type}] %{category}: %{message}");
 
-  QLoggingCategory::setFilterRules("qt.scenegraph.general=true\n"
-                                   "qt.qml.*.debug=true\n"
-                                   "qt.qml.overloadresolution.debug=false");
+  const auto expectedBasePaths = QStringList()
+#ifdef QMCU_FORCE_QML_DEV_PLUGINS
+                              << QMCU_FORCE_QML_DEV_PLUGINS
+#endif
+                              << QDir::homePath()
+                               + "/.local/lib/qt6"
+                              << "/usr/local/lib/qt6"
+                              << "/usr/lib/qt6";
+
+  QCoreApplication::setLibraryPaths(
+      patchPaths(expectedBasePaths, "plugins", QCoreApplication::libraryPaths()));
+
+  QLoggingCategory::setFilterRules(
+      R"(qt.scenegraph.general=true
+qt.qml.*.debug=true
+qt.qml.overloadresolution.debug=false
+qt.qml.delegatemodel.recycling=false
+qt.qml.gc.*=false
+)");
 
   QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
 
@@ -58,6 +94,9 @@ int main(int argc, char** argv)
   }
 
   QQmlApplicationEngine engine;
+
+  engine.setImportPathList(patchPaths(expectedBasePaths, "qml", engine.importPathList()));
+
   engine.loadFromModule("QPlotTest", QML_MAIN);
 
   QQuickWindow* win = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
