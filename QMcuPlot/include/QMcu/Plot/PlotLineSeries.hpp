@@ -21,17 +21,9 @@ class PlotLineSeries : public AbstractPlotSeries
   Q_PROPERTY(QColor lineColor READ lineColor WRITE setLineColor NOTIFY lineColorChanged)
   Q_PROPERTY(float thickness READ thickness WRITE setThickness NOTIFY thicknessChanged)
   Q_PROPERTY(float glow READ glow WRITE setGlow NOTIFY glowChanged)
-
-  Q_PROPERTY(LineStyle lineStyle READ lineStyle WRITE setLineStyle NOTIFY lineStyleChanged)
+  Q_PROPERTY(float lineWidth WRITE setLineWidth FINAL)
 
 public:
-  enum LineStyle
-  {
-    Basic,
-    Halo,
-  };
-  Q_ENUM(LineStyle)
-
   explicit PlotLineSeries(QObject* parent = nullptr);
   virtual ~PlotLineSeries();
 
@@ -47,10 +39,6 @@ public:
   {
     return glow_;
   }
-  LineStyle lineStyle() const noexcept
-  {
-    return lineStyle_;
-  }
 
 public slots:
 
@@ -61,6 +49,11 @@ public slots:
       lineColor_ = color;
       emit lineColorChanged();
     }
+  }
+
+  void setLineWidth(float width)
+  {
+    lineWidth_ = width;
   }
 
   void setThickness(float thickness)
@@ -81,21 +74,11 @@ public slots:
     }
   }
 
-  void setLineStyle(LineStyle lineStyle)
-  {
-    if(lineStyle != lineStyle_)
-    {
-      lineStyle_ = lineStyle;
-      emit lineStyleChanged(lineStyle_);
-    }
-  }
 
 signals:
   void lineColorChanged();
   void thicknessChanged(float);
   void glowChanged(float);
-
-  void lineStyleChanged(LineStyle);
 
 protected:
   bool initialize() final;
@@ -129,7 +112,7 @@ private:
   QColor    lineColor_ = Qt::red;
   float     thickness_ = 7 / 100.0f;
   float     glow_      = 1 / 100.0f;
-  LineStyle lineStyle_ = LineStyle::Basic;
+  float     lineWidth_ = 2.0f;
 
   vk::Pipeline       pipeline_       = nullptr;
   vk::PipelineCache  pipelineCache_  = nullptr;
@@ -143,8 +126,8 @@ private:
 
   vk::DescriptorPool descriptorPool_{};
   // vk::DescriptorSet  descriptorSets_[2]{};
-  vk::DescriptorSet ubufDescriptor_{};// = descriptorSets_[0];
-  vk::DescriptorSet sbufDescriptor_{};// = descriptorSets_[1];
+  vk::DescriptorSet ubufDescriptor_{}; // = descriptorSets_[0];
+  vk::DescriptorSet sbufDescriptor_{}; // = descriptorSets_[1];
 
   size_t allocPerUbuf_ = 0;
 };

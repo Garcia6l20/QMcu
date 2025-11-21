@@ -66,6 +66,7 @@ ApplicationWindow {
 
             PlotLineSeries {
                 name: "1 Hz"
+                lineWidth: 1
                 dataProvider: TestSignal {
                     amplitude: 10
                     frequency: 1
@@ -122,6 +123,7 @@ ApplicationWindow {
             }
             PlotLineSeries {
                 name: "9 Hz"
+                lineColor: '#7cf0f353'
                 dataProvider: TestSignal {
                     amplitude: 7
                     frequency: 9
@@ -129,6 +131,7 @@ ApplicationWindow {
             }
             PlotLineSeries {
                 name: "10 Hz"
+                lineColor: '#7cb216c7'
                 dataProvider: TestSignal {
                     amplitude: -6
                     frequency: 10

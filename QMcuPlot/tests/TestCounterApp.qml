@@ -82,14 +82,12 @@ ApplicationWindow {
                 name: "counter1"
                 lineColor: "cyan"
                 dataProvider: counter1
-                lineStyle: PlotLineSeries.Halo
             }
             PlotLineSeries {
                 id: ps2
                 name: "counter2"
                 lineColor: "magenta"
                 dataProvider: counter2
-                lineStyle: PlotLineSeries.Halo
             }
         }
     }

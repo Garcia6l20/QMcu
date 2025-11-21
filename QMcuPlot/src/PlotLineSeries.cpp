@@ -140,6 +140,14 @@ bool PlotLineSeries::initialize()
 
   builder.inputAssemblyInfo.setTopology(vk::PrimitiveTopology::eLineStrip);
 
+  vk::PipelineRasterizationLineStateCreateInfo lineInfo{};
+  lineInfo.lineRasterizationMode = vk::LineRasterizationModeEXT::eRectangularKHR;
+  lineInfo.stippledLineEnable    = false;
+  lineInfo.lineStippleFactor     = 1;
+  lineInfo.lineStipplePattern    = 0xFFFF;
+  builder.rasterizationInfo.setPNext(&lineInfo);
+  builder.rasterizationInfo.setLineWidth(lineWidth_);
+
   switch(ctx_.data.type)
   {
     case QMetaType::Type::Float:
