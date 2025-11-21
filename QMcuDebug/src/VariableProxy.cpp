@@ -105,6 +105,11 @@ void VariableProxy::update()
 
 void VariableProxy::refresh()
 {
+  if(variable_ == nullptr)
+  {
+    return;
+  }
+
   auto value = variable_->read();
   if(value != value_)
   {

@@ -86,7 +86,7 @@ qt.qml.gc.*=false
       "VK_KHR_maintenance2",
       "VK_KHR_create_renderpass2",
       "VK_KHR_get_physical_device_properties2",
-      "VK_EXT_line_rasterization",
+      "VK_KHR_line_rasterization",
   });
 
   if(!inst.create())
