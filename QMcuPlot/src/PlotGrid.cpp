@@ -42,55 +42,29 @@ bool PlotGrid::initialize()
 
   const size_t verticesCount = ticks_ * 2 * 2; // 2 per ticks, vertical + horizontal
   size_t       verticesBufferSize;
-#if 0
-  std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.allocateBuffer(
-      2 * sizeof(float) * verticesCount,
-      vk::BufferUsageFlagBits::eVertexBuffer,
-      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  std::tie(verticesBufferSize, vbuf_, vbufMem_) =
+      vk.createDeviceLocalVertexBuffer<float>(verticesCount * 2,
+                                              [&](std::span<float> p)
+                                              {
+                                                for(int ii = 0; ii < ticks_; ++ii)
+                                                {
+                                                  const float r = (ii + 1) / float(ticks_ + 1);
 
-  auto p = reinterpret_cast<float*>(vk.dev.mapMemory(vbufMem_, 0, verticesBufferSize));
-  if(!p)
-    qFatal("Failed to map vertex buffer memory");
-  for(int ii = 0; ii < ticks_; ++ii)
-  {
-    const float r = (ii + 1) / float(ticks_ + 1);
+                                                  // Vertical line
+                                                  p[8 * ii]     = r;
+                                                  p[8 * ii + 1] = -1.0;
 
-    // Vertical line
-    p[8 * ii]     = r;
-    p[8 * ii + 1] = -1.0;
-    p[8 * ii + 2] = r;
-    p[8 * ii + 3] = 1.0;
+                                                  p[8 * ii + 2] = r;
+                                                  p[8 * ii + 3] = 1.0;
 
-    // Horizontal line
-    p[8 * ii + 4] = -1.0;
-    p[8 * ii + 5] = r;
-    p[8 * ii + 6] = 1.0;
-    p[8 * ii + 7] = r;
-  }
-  vk.dev.unmapMemory(vbufMem_);
-  vk.dev.bindBufferMemory(vbuf_, vbufMem_, 0);
-#else
-  std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.createDeviceLocalVertexBuffer<float>(verticesCount * 2,
-                                               [&](std::span<float> p)
-                                               {
-                                                 for(int ii = 0; ii < ticks_; ++ii)
-                                                 {
-                                                   const float r = (ii + 1) / float(ticks_ + 1);
-
-                                                   // Vertical line
-                                                   p[8 * ii]     = r;
-                                                   p[8 * ii + 1] = -1.0;
-                                                   p[8 * ii + 2] = r;
-                                                   p[8 * ii + 3] = 1.0;
-
-                                                   // Horizontal line
-                                                   p[8 * ii + 4] = -1.0;
-                                                   p[8 * ii + 5] = r;
-                                                   p[8 * ii + 6] = 1.0;
-                                                   p[8 * ii + 7] = r;
-                                                 }
-                                               });
-#endif
+                                                  // Horizontal line
+                                                  p[8 * ii + 4] = -1.0;
+                                                  p[8 * ii + 5] = r;
+                                                  
+                                                  p[8 * ii + 6] = 1.0;
+                                                  p[8 * ii + 7] = r;
+                                                }
+                                              });
 
   builder.vertexBinding.setStride(2 * sizeof(float));
   builder.vertexAttr.setFormat(vk::Format::eR32G32Sfloat);

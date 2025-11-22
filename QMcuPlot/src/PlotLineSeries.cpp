@@ -183,7 +183,7 @@ bool PlotLineSeries::initialize()
   Q_ASSERT(vk.framesInFlight <= 3);
 
   size_t ubufSize;
-  std::tie(allocPerUbuf_, ubufSize, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
+  std::tie(allocPerUbuf_, ubufSize, ubuf_, ubufMem_) = vk.allocateDynamicBuffer(
       sizeof(ubo),
       vk::BufferUsageFlagBits::eUniformBuffer,
       vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);

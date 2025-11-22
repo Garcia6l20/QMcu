@@ -79,7 +79,7 @@ void PlotScene::setupStencilPipeline()
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 
   vk::PushConstantRange pushRange{};
-  pushRange.stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eGeometry;
+  pushRange.stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex;
   pushRange.offset     = 0;
   pushRange.size       = sizeof(stencilUbo);
   pipelineLayoutInfo.setPushConstantRanges(pushRange);
@@ -87,19 +87,15 @@ void PlotScene::setupStencilPipeline()
   stencilPipelineLayout_ = vk.dev.createPipelineLayout(pipelineLayoutInfo);
 
   auto vertShaderModule = vk.createShaderModule("stencil.vert.spv");
-  auto geomShaderModule = vk.createShaderModule("stencil.geom.spv");
   auto fragShaderModule = vk.createShaderModule("stencil.frag.spv");
 
-  vk::PipelineShaderStageCreateInfo stageInfo[3]{};
+  vk::PipelineShaderStageCreateInfo stageInfo[2]{};
   stageInfo[0].setStage(vk::ShaderStageFlagBits::eVertex);
   stageInfo[0].setModule(vertShaderModule);
   stageInfo[0].setPName("main");
-  stageInfo[1].setStage(vk::ShaderStageFlagBits::eGeometry);
-  stageInfo[1].setModule(geomShaderModule);
+  stageInfo[1].setStage(vk::ShaderStageFlagBits::eFragment);
+  stageInfo[1].setModule(fragShaderModule);
   stageInfo[1].setPName("main");
-  stageInfo[2].setStage(vk::ShaderStageFlagBits::eFragment);
-  stageInfo[2].setModule(fragShaderModule);
-  stageInfo[2].setPName("main");
 
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{}; // dummy - no vertex input
   vk::DynamicState dynStates[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
@@ -110,7 +106,45 @@ void PlotScene::setupStencilPipeline()
   viewportInfo.viewportCount = viewportInfo.scissorCount = 1;
 
   vk::PipelineInputAssemblyStateCreateInfo iaInfo;
-  iaInfo.topology = vk::PrimitiveTopology::ePointList;
+  iaInfo.topology = vk::PrimitiveTopology::eTriangleStrip;
+
+  const size_t verticesCount = 4;
+  size_t       verticesBufferSize;
+  std::tie(verticesBufferSize, stencilVBuf_, stencilVMem_) =
+      vk.createDeviceLocalVertexBuffer<float>(verticesCount * 2,
+                                              [&](std::span<float> p)
+                                              {
+                                                // bottom left
+                                                p[0] = 0.0;
+                                                p[1] = 0.0;
+
+                                                // bottom right
+                                                p[2] = 1.0;
+                                                p[3] = 0.0;
+
+                                                // top left
+                                                p[4] = 0.0;
+                                                p[5] = 1.0;
+
+                                                // top right
+                                                p[6] = 1.0;
+                                                p[7] = 1.0;
+                                              });
+
+  vk::VertexInputBindingDescription   vertexBinding{0,
+                                                  2 * sizeof(float),
+                                                  vk::VertexInputRate::eVertex};
+  vk::VertexInputAttributeDescription vertexAttr = {
+      0,                         // location
+      0,                         // binding
+      vk::Format::eR32G32Sfloat, // 'vertices' only has 2 floats per vertex
+      0                          // offset
+  };
+
+  vertexInputInfo.setVertexBindingDescriptionCount(1);
+  vertexInputInfo.setPVertexBindingDescriptions(&vertexBinding);
+  vertexInputInfo.setVertexAttributeDescriptionCount(1);
+  vertexInputInfo.setPVertexAttributeDescriptions(&vertexAttr);
 
   vk::PipelineRasterizationStateCreateInfo rsInfo{};
   rsInfo.lineWidth = 1.0f;
@@ -156,7 +190,6 @@ void PlotScene::setupStencilPipeline()
 
   vk.dev.destroyShaderModule(vertShaderModule);
   vk.dev.destroyShaderModule(fragShaderModule);
-  vk.dev.destroyShaderModule(geomShaderModule);
 
   if(res != vk::Result::eSuccess)
   {
@@ -209,8 +242,6 @@ void PlotScene::prepare()
     vk.physDevMemProps = vk.phyDev.getMemoryProperties();
     vk.framesInFlight  = win_->graphicsStateInfo().framesInFlight;
 
-    setupStencilPipeline();
-
     const auto queueFamily = *reinterpret_cast<uint32_t*>(
         rif->getResource(win_, QSGRendererInterface::GraphicsQueueFamilyIndexResource));
 
@@ -222,6 +253,8 @@ void PlotScene::prepare()
     vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer};
     poolInfo.queueFamilyIndex = queueFamily;
     vk.commandPool            = vk.dev.createCommandPool(poolInfo);
+
+    setupStencilPipeline();
 
     initialized_ = true;
   }
@@ -275,13 +308,14 @@ void PlotScene::render(const RenderState* state)
   { // compute stencil mask
     cb.bindPipeline(vk::PipelineBindPoint::eGraphics, stencilPipeline_);
 
+    const vk::DeviceSize offset = 0;
+    cb.bindVertexBuffers(0, 1, &stencilVBuf_, &offset);
+
     stencilUbo.mvp            = vk.modelViewProjection;
     stencilUbo.boundingSize.x = vk.boundingRect.extent.width;
     stencilUbo.boundingSize.y = vk.boundingRect.extent.height;
     cb.pushConstants(stencilPipelineLayout_,
-                     vk::ShaderStageFlagBits::eFragment
-                         | vk::ShaderStageFlagBits::eGeometry
-                         | vk::ShaderStageFlagBits::eFragment,
+                     vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
                      0,
                      sizeof(stencilUbo),
                      &stencilUbo);
@@ -319,6 +353,9 @@ void PlotScene::releaseResources()
     vk.dev.destroy(stencilPipeline_);
     vk.dev.destroy(stencilPipelineCache_);
     vk.dev.destroy(stencilPipelineLayout_);
+
+    vk.dev.destroy(stencilVBuf_);
+    vk.dev.free(stencilVMem_);
   }
 #endif
   vk.dev.destroy(vk.commandPool);

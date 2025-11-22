@@ -108,7 +108,7 @@ bool SquircleRenderer::initialize()
 
 #ifdef USE_BUILDER
   size_t verticesBufferSize;
-  std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.allocateBuffer(
+  std::tie(verticesBufferSize, vbuf_, vbufMem_) = vk.allocateBuffer(
       sizeof(vertices),
       vk::BufferUsageFlagBits::eVertexBuffer,
       vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -155,7 +155,7 @@ bool SquircleRenderer::initialize()
 
 #ifdef USE_BUILDER
   size_t ubufTotalSize;
-  std::tie(allocPerUbuf_, ubufTotalSize, ubuf_, ubufMem_) = builder.allocateDynamicBuffer(
+  std::tie(allocPerUbuf_, ubufTotalSize, ubuf_, ubufMem_) = vk.allocateDynamicBuffer(
       UBUF_SIZE,
       vk::BufferUsageFlagBits::eUniformBuffer,
       vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);

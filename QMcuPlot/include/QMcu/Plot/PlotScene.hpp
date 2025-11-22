@@ -84,5 +84,8 @@ private:
   vk::PipelineLayout stencilPipelineLayout_;
   vk::Pipeline       stencilPipeline_;
 
+  vk::Buffer       stencilVBuf_;
+  vk::DeviceMemory stencilVMem_;
+
   static QElapsedTimer sTimer_;
 };
