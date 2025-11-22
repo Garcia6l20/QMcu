@@ -53,7 +53,7 @@ vulkan_compile_shaders(qmcu-plot-shaders
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/set-color.frag
 
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.vert
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.geom
+    # ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.geom
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.frag
 
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/stencil.vert

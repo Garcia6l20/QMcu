@@ -11,7 +11,7 @@ class PlotGrid : public PlotSceneItem
 {
   Q_OBJECT
 
-  Q_PROPERTY(uint32_t ticks READ ticks WRITE setTicks NOTIFY ticksChanged)
+  Q_PROPERTY(uint32_t ticks READ ticks WRITE setTicks NOTIFY ticksChanged FINAL)
   Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
 
 public:
@@ -19,7 +19,7 @@ public:
 
   uint32_t ticks() const noexcept
   {
-    return push_.ticks;
+    return ticks_;
   }
 
   QColor const& color() const noexcept
@@ -30,11 +30,16 @@ public:
 public slots:
   void setTicks(uint32_t ticks)
   {
-    if(ticks != push_.ticks)
+    if(ticks != ticks_)
     {
-      push_.ticks = ticks;
+      if(isInitialized())
+      {
+        qWarning() << "Cannot change tick count after beeing initialized";
+        return;
+      }
+      ticks_ = ticks;
       setDirty();
-      emit ticksChanged(push_.ticks);
+      emit ticksChanged(ticks_);
     }
   }
 
@@ -66,12 +71,14 @@ private:
     glm::mat4 mvp;
     glm::vec4 color{0.5f, 0.5f, 0.5f, 0.7f};
     glm::vec2 boundingSize;
-    uint32_t  ticks = 5;
-    uint32_t  dash  = 12;
-    uint32_t  gap   = 4;
   } push_;
+
+  uint32_t  ticks_ = 5;
 
   vk::Pipeline       pipeline_;
   vk::PipelineCache  pipelineCache_;
   vk::PipelineLayout pipelineLayout_;
+
+  vk::Buffer       vbuf_{};
+  vk::DeviceMemory vbufMem_{};
 };
