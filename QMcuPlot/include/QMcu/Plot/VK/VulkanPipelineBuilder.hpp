@@ -121,6 +121,93 @@ public:
     return std::make_tuple(pipeline, cache, layout, setLayouts);
   }
 
+  class OneShotCommandBuffer
+  {
+  public:
+    OneShotCommandBuffer(VulkanContext& ctx) : ctx_{ctx}
+    {
+      vk::CommandBufferAllocateInfo alloc{};
+      alloc.level              = vk::CommandBufferLevel::ePrimary;
+      alloc.commandPool        = ctx_.commandPool;
+      alloc.commandBufferCount = 1;
+      commandBuffer            = ctx_.dev.allocateCommandBuffers(alloc)[0];
+      vk::CommandBufferBeginInfo beginInfo{};
+      beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+      commandBuffer.begin(beginInfo);
+    }
+
+    ~OneShotCommandBuffer()
+    {
+      commandBuffer.end();
+      vk::SubmitInfo submit{};
+      submit.commandBufferCount = 1;
+      submit.pCommandBuffers    = &commandBuffer;
+      ctx_.queue.submit(submit, {});
+      ctx_.queue.waitIdle();
+      ctx_.dev.freeCommandBuffers(ctx_.commandPool, ctx_.commandBuffer);
+    }
+
+    vk::CommandBuffer commandBuffer;
+
+  private:
+    VulkanContext& ctx_;
+  };
+
+  template <typename T, typename FillFn>
+  inline auto createDeviceLocalVertexBuffer(size_t element_count, FillFn&& fill)
+  {
+    const size_t size = element_count * sizeof(T);
+
+    // 1. Create staging buffer
+    vk::BufferCreateInfo stagingInfo{};
+    stagingInfo.size         = size;
+    stagingInfo.usage        = vk::BufferUsageFlagBits::eTransferSrc;
+    stagingInfo.sharingMode  = vk::SharingMode::eExclusive;
+    vk::Buffer stagingBuffer = vk.dev.createBuffer(stagingInfo);
+
+    vk::MemoryRequirements memReq = vk.dev.getBufferMemoryRequirements(stagingBuffer);
+    vk::MemoryAllocateInfo allocInfo{};
+    allocInfo.allocationSize  = memReq.size;
+    allocInfo.memoryTypeIndex = vk.findMemoryTypeIndex(
+        memReq,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    vk::DeviceMemory stagingMem = vk.dev.allocateMemory(allocInfo);
+    vk.dev.bindBufferMemory(stagingBuffer, stagingMem, 0);
+
+    // Map and copy
+    T* mapped = reinterpret_cast<T*>(vk.dev.mapMemory(stagingMem, 0, size));
+    fill(std::span<T>(mapped, element_count));
+    vk.dev.unmapMemory(stagingMem);
+
+    // 2. Create device-local buffer
+    vk::BufferCreateInfo vertexInfo{};
+    vertexInfo.size = size;
+    vertexInfo.usage =
+        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+    vertexInfo.sharingMode  = vk::SharingMode::eExclusive;
+    vk::Buffer vertexBuffer = vk.dev.createBuffer(vertexInfo);
+
+    memReq                   = vk.dev.getBufferMemoryRequirements(vertexBuffer);
+    allocInfo.allocationSize = memReq.size;
+    allocInfo.memoryTypeIndex =
+        vk.findMemoryTypeIndex(memReq, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    vk::DeviceMemory vertexMem = vk.dev.allocateMemory(allocInfo);
+    vk.dev.bindBufferMemory(vertexBuffer, vertexMem, 0);
+
+    vk::BufferCopy copyRegion{};
+    copyRegion.size = size;
+    {
+      OneShotCommandBuffer oneShot{vk};
+      oneShot.commandBuffer.copyBuffer(stagingBuffer, vertexBuffer, 1, &copyRegion);
+    }
+
+    // 4. Cleanup staging
+    vk.dev.destroyBuffer(stagingBuffer);
+    vk.dev.freeMemory(stagingMem);
+
+    return std::tuple{size, vertexBuffer, vertexMem};
+  }
+
 private:
   VulkanContext& vk;
 

@@ -10,53 +10,6 @@
 
 #include <magic_enum/magic_enum.hpp>
 
-VkDebugUtilsMessengerEXT sMessenger = nullptr;
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-    genericDebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
-                         vk::DebugUtilsMessageTypeFlagsEXT             messageTypes,
-                         const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                         void*                                         pUserData)
-{
-  if(messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
-  {
-    qCritical().nospace()
-        << pCallbackData->messageIdNumber
-        << "Validation Layer: Error: "
-        << pCallbackData->pMessageIdName
-        << ": "
-        << pCallbackData->pMessage;
-  }
-  else if(messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
-  {
-    qWarning().nospace()
-        << pCallbackData->messageIdNumber
-        << "Validation Layer: Warning: "
-        << pCallbackData->pMessageIdName
-        << ": "
-        << pCallbackData->pMessage;
-  }
-  else if(messageTypes & vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
-  {
-    qInfo().nospace()
-        << pCallbackData->messageIdNumber
-        << "Validation Layer: Performance: "
-        << pCallbackData->pMessageIdName
-        << ": "
-        << pCallbackData->pMessage;
-  }
-  else
-  {
-    qInfo().nospace()
-        << pCallbackData->messageIdNumber
-        << "Validation Layer: Info: "
-        << pCallbackData->pMessageIdName
-        << ": "
-        << pCallbackData->pMessage;
-  }
-  return VK_FALSE;
-}
-
 QElapsedTimer PlotScene::sTimer_ = []
 {
   QElapsedTimer t;
@@ -258,13 +211,20 @@ void PlotScene::prepare()
 
     setupStencilPipeline();
 
+    const auto queueFamily = *reinterpret_cast<uint32_t*>(
+        rif->getResource(win_, QSGRendererInterface::GraphicsQueueFamilyIndexResource));
+
+    const auto queueIndex = *reinterpret_cast<uint32_t*>(
+        rif->getResource(win_, QSGRendererInterface::GraphicsQueueIndexResource));
+
+    vk.queue = vk.dev.getQueue(queueFamily, queueIndex);
+
+    vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer};
+    poolInfo.queueFamilyIndex = queueFamily;
+    vk.commandPool            = vk.dev.createCommandPool(poolInfo);
+
     initialized_ = true;
   }
-}
-
-void PlotScene::render(const RenderState* state)
-{
-  QSGRendererInterface* rif = win_->rendererInterface();
 
   for(auto* r : renderers_)
   {
@@ -274,8 +234,12 @@ void PlotScene::render(const RenderState* state)
       r->initialized_ = r->initialize();
     }
   }
+}
 
-  auto& vk = vk_;
+void PlotScene::render(const RenderState* state)
+{
+  QSGRendererInterface* rif = win_->rendererInterface();
+  auto&                 vk  = vk_;
 
   // This example demonstrates the simple case: prepending some commands to
   // the scenegraph's main renderpass. It does not create its own passes,
@@ -347,8 +311,9 @@ void PlotScene::releaseResources()
     }
   }
 
-#ifdef ENABLE_STENCIL_MASK
   auto& vk = vk_;
+
+#ifdef ENABLE_STENCIL_MASK
   if(stencilPipeline_)
   {
     vk.dev.destroy(stencilPipeline_);
@@ -356,6 +321,7 @@ void PlotScene::releaseResources()
     vk.dev.destroy(stencilPipelineLayout_);
   }
 #endif
+  vk.dev.destroy(vk.commandPool);
 }
 
 QSGRenderNode::RenderingFlags PlotScene::flags() const

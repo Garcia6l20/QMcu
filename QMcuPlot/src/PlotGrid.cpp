@@ -42,6 +42,7 @@ bool PlotGrid::initialize()
 
   const size_t verticesCount = ticks_ * 2 * 2; // 2 per ticks, vertical + horizontal
   size_t       verticesBufferSize;
+#if 0
   std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.allocateBuffer(
       2 * sizeof(float) * verticesCount,
       vk::BufferUsageFlagBits::eVertexBuffer,
@@ -68,6 +69,28 @@ bool PlotGrid::initialize()
   }
   vk.dev.unmapMemory(vbufMem_);
   vk.dev.bindBufferMemory(vbuf_, vbufMem_, 0);
+#else
+  std::tie(verticesBufferSize, vbuf_, vbufMem_) = builder.createDeviceLocalVertexBuffer<float>(verticesCount * 2,
+                                               [&](std::span<float> p)
+                                               {
+                                                 for(int ii = 0; ii < ticks_; ++ii)
+                                                 {
+                                                   const float r = (ii + 1) / float(ticks_ + 1);
+
+                                                   // Vertical line
+                                                   p[8 * ii]     = r;
+                                                   p[8 * ii + 1] = -1.0;
+                                                   p[8 * ii + 2] = r;
+                                                   p[8 * ii + 3] = 1.0;
+
+                                                   // Horizontal line
+                                                   p[8 * ii + 4] = -1.0;
+                                                   p[8 * ii + 5] = r;
+                                                   p[8 * ii + 6] = 1.0;
+                                                   p[8 * ii + 7] = r;
+                                                 }
+                                               });
+#endif
 
   builder.vertexBinding.setStride(2 * sizeof(float));
   builder.vertexAttr.setFormat(vk::Format::eR32G32Sfloat);

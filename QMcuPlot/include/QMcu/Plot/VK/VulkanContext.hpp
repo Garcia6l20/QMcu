@@ -34,6 +34,9 @@ struct VulkanContext
   vk::PhysicalDeviceMemoryProperties physDevMemProps;
   vk::CommandBuffer                  commandBuffer;
 
+  vk::Queue                 queue;
+  vk::CommandPool           commandPool;
+
   size_t framesInFlight;
   size_t currentFrameSlot;
 
