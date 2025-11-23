@@ -25,8 +25,8 @@ VariableProxy::VariableProxy(QObject* parent) : QObject{parent}
               variable_ = dbg->variable(name_);
               if(variable_ == nullptr)
               {
-                throw std::runtime_error(
-                    std::format("cannot find variable {}", name_.toStdString()));
+                qCritical() << "Cannot find variable:" << name_;
+                return;
               }
               emit variableChanged();
               if(StLinkProbe::instance() == nullptr)

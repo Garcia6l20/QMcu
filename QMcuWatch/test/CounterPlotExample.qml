@@ -1,4 +1,3 @@
-import QMcuDebug
 import QtCore
 import QtQuick
 import QtQuick.Controls
@@ -7,7 +6,10 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Window
 import QtGraphs
+
+import QMcuDebug
 import QMcuPlot
+import QMcuUtils
 
 ApplicationWindow {
     id: root
@@ -18,6 +20,8 @@ ApplicationWindow {
     title: `Counter watch example ${dbg.targetArchitecture}`
 
     Material.theme: Material.Light
+
+    LoggingErrorDialog {}
 
     Debugger {
         id: dbg

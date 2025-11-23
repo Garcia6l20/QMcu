@@ -27,6 +27,14 @@ target_link_libraries(QMcuWatch PRIVATE
 )
 
 add_executable(QMcuWatchCounterExample test/counter.cpp)
+
+# Force Debug even on Release
+target_compile_definitions(QMcuWatchCounterExample PRIVATE DEBUG)
+target_compile_options(QMcuWatchCounterExample PRIVATE -O0 -g)
+set_target_properties(QMcuWatchCounterExample PROPERTIES
+    LINK_FLAGS_DEBUG "-g"
+)
+
 add_dependencies(QMcuWatch QMcuWatchCounterExample)
 
 qt_finalize_target(QMcuWatch)

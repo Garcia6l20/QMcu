@@ -47,6 +47,7 @@ qt_standard_project_setup()
 
 option(QMCU_FORCE_QML_DEV_PLUGINS "Enforce using qml devolvement plugins" OFF)
 
+add_subdirectory(QMcuUtils)
 add_subdirectory(QMcuPlot)
 add_subdirectory(QMcuDebug)
 add_subdirectory(QMcuWatch)
