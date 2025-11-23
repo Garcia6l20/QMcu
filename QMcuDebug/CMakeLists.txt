@@ -9,6 +9,7 @@ set(SRC
   src/ScrollRecorder.cpp
   src/AbstractVariablePlotDataProvider.cpp
   src/ScrollPlotProvider.cpp
+  src/BufferPlotProvider.cpp
   src/BufferRecorder.cpp
   src/AutoScale.cpp
 )
@@ -23,6 +24,7 @@ set(PUBLIC_HEADERS
   include/QMcu/Debug/ScrollRecorder.hpp
   include/QMcu/Debug/AbstractVariablePlotDataProvider.hpp
   include/QMcu/Debug/ScrollPlotProvider.hpp
+  include/QMcu/Debug/BufferPlotProvider.hpp
   include/QMcu/Debug/BufferRecorder.hpp
   include/QMcu/Debug/AutoScale.hpp
 )

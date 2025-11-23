@@ -13,14 +13,16 @@ struct TypeId
   size_t          size;
 };
 
-#define QPLOT_BASIC_TYPE_MAP(X)  \
-  X(float, QMetaType::Float)     \
-  X(double, QMetaType::Double)   \
-  X(int32_t, QMetaType::Int)     \
-  X(uint32_t, QMetaType::UInt)   \
-  X(int16_t, QMetaType::Short)   \
-  X(uint16_t, QMetaType::UShort) \
-  X(int8_t, QMetaType::Char)     \
+#define QPLOT_BASIC_TYPE_MAP(X)     \
+  X(float, QMetaType::Float)        \
+  X(double, QMetaType::Double)      \
+  X(int32_t, QMetaType::Int)        \
+  X(uint32_t, QMetaType::UInt)      \
+  X(int64_t, QMetaType::LongLong)   \
+  X(uint64_t, QMetaType::ULongLong) \
+  X(int16_t, QMetaType::Short)      \
+  X(uint16_t, QMetaType::UShort)    \
+  X(int8_t, QMetaType::Char)        \
   X(uint8_t, QMetaType::UChar)
 
 template <typename Visitor>

@@ -1,6 +1,7 @@
 #include <QMcu/Debug/BufferRecorder.hpp>
 
 #include <Logging.hpp>
+#include <VariantUtils.hpp>
 
 BufferRecorder::BufferRecorder(QObject* parent) : AbstractVariableRecorder{parent}
 {
@@ -26,31 +27,6 @@ void BufferRecorder::setSeries(QLineSeries* series)
     }
     emit seriesChanged();
   }
-}
-
-template <typename... AllowedTypes>
-decltype(auto) qVisitSome(const QVariant& variant, auto&& visitor)
-{
-  return [&]<size_t... I>(std::index_sequence<I...>)
-  {
-    return (
-        [&]<size_t II>
-        {
-          if(variant.typeId() == QMetaType::fromType<AllowedTypes...[II]>().id())
-          {
-            std::forward<decltype(visitor)>(visitor)(variant.value<AllowedTypes...[II]>());
-            return true;
-          }
-          return false;
-        }.template operator()<I>() or
-        ...);
-  }(std::index_sequence_for<AllowedTypes...>());
-}
-
-template <template <typename> typename Container, typename... AllowedTypes>
-decltype(auto) qVisitSomeContainer(const QVariant& variant, auto&& visitor)
-{
-  return qVisitSome<Container<AllowedTypes>...>(variant, std::forward<decltype(visitor)>(visitor));
 }
 
 void BufferRecorder::onValueChanged()
