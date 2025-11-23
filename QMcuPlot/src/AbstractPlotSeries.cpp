@@ -132,7 +132,7 @@ void AbstractPlotSeries::updateTransforms()
   ndcToUnit.setToIdentity();
   ndcToUnit.viewport(unitBounds.left(),
                      unitBounds.bottom(),
-                     unitBounds.right() - unitBounds.left(),
+                     (unitBounds.right() - unitBounds.left()) - 1,
                      unitBounds.top() - unitBounds.bottom());
   auto& unitToNdc = ctx_.unit.toNdc = ndcToUnit.inverted();
 
