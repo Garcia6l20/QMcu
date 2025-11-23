@@ -1,6 +1,6 @@
 import QtCore
 import QtQuick
-import QMcuPlot
+import QMcu.Plot
 
 Item {
     id: root

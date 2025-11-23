@@ -7,9 +7,9 @@ import QtQuick.Layouts
 import QtQuick.Window
 import QtGraphs
 
-import QMcuDebug
-import QMcuPlot
-import QMcuUtils
+import QMcu.Debug
+import QMcu.Plot
+import QMcu.Utils
 
 ApplicationWindow {
     id: root

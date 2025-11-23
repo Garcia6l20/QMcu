@@ -1,6 +1,6 @@
 import QtQuick
 
-import QMcuDebug
+import QMcu.Debug
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts

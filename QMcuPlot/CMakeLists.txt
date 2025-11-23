@@ -138,7 +138,6 @@ target_link_libraries(QMcuPlot
   PUBLIC
     Qt6::Quick Qt6::Qml Qt6::Graphs
   PRIVATE
-    fmt::fmt
     glm::glm
     GLU
     vulkan
@@ -149,14 +148,14 @@ add_dependencies(QMcuPlot qmcu-plot-shaders)
 
 qt_add_qml_module(QMcuPlot
   PLUGIN_TARGET QMcuPlotPlugin
-  URI QMcuPlot
+  URI QMcu.Plot
   VERSION 1.0
   QML_FILES
     src/qml/PlotView.qml
     src/qml/PlotZoom.qml
     src/qml/PlayButton.qml
   RESOURCE_PREFIX /qmcu/plot
-  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcuPlot
+  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcu/Plot
 )
 
 qt_finalize_target(QMcuPlot)
@@ -171,9 +170,4 @@ install(TARGETS QMcuPlot
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QMcu/Plot
-)
-
-install(DIRECTORY
-  "${QML_IMPORT_PATH}/QMcuPlot"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/qt6/qml"
 )

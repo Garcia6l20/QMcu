@@ -54,7 +54,7 @@ target_link_libraries(QMcuDebug
 
 qt_add_qml_module(QMcuDebug
   PLUGIN_TARGET QMcuDebugPlugin
-  URI QMcuDebug
+  URI QMcu.Debug
   VERSION 1.0
   QML_FILES
     src/qml/RubberBand.qml
@@ -62,7 +62,7 @@ qt_add_qml_module(QMcuDebug
     src/qml/ScrollRecorderSeries.qml
     src/qml/BufferRecorderSeries.qml
     src/qml/SimplePlot.qml
-  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcuDebug
+  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcu/Debug
 )
 
 qt_finalize_target(QMcuDebug)
@@ -72,9 +72,4 @@ install(TARGETS QMcuDebug
   BUNDLE DESTINATION .
   RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QMcu/Debug
-)
-
-install(DIRECTORY
-  "${QML_IMPORT_PATH}/QMcuDebug"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/qt6/qml"
 )

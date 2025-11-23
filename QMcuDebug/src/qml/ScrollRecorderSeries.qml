@@ -1,7 +1,7 @@
 import QtCore
 import QtQuick
 import QtGraphs
-import QMcuDebug
+import QMcu.Debug
 
 LineSeries {
     id: root

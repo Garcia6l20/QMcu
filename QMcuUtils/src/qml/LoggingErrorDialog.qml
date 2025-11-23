@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 
-import QMcuUtils
+import QMcu.Utils
 
 Dialog {
     id: root

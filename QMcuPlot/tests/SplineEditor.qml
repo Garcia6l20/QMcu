@@ -5,7 +5,7 @@ import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtGraphs
-import QMcuPlot
+import QMcu.Plot
 import Qt.labs.platform
 
 ApplicationWindow {

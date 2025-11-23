@@ -1,11 +1,11 @@
-import QMcuPlot 1.0
-import QPlotTest 1.0
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
+import QMcu.Plot
+import QPlotTest
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Dialogs
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick.Layouts
+import QtQuick.Window
 import QtGraphs
 
 ApplicationWindow {

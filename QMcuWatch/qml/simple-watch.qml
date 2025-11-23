@@ -1,4 +1,4 @@
-import QMcuDebug 1.0
+import QMcu.Debug 1.0
 import QtCore 6.9
 import QtQuick 2.15
 import QtQuick.Controls 2.15

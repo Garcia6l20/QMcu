@@ -1,4 +1,4 @@
-import QMcuDebug
+import QMcu.Debug
 import QtCore
 import QtQuick
 import QtQuick.Controls

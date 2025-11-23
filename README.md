@@ -7,8 +7,8 @@ It provides real-time access to target variables (via ST-Link or similar probes)
 
 ### 🧩 Modular Architecture
 Split into independent components:
- - QMcu::Debug — provides direct access to MCU variables, symbol resolution, and memory probing.
- - QMcu::Plot — high-performance Vulkan plotting engine designed for real-time data visualization in QML.
+ - QMcu.Debug — provides direct access to MCU variables, symbol resolution, and memory probing.
+ - QMcu.Plot — high-performance Vulkan plotting engine designed for real-time data visualization in QML.
 
 ### 🔍 Live Variable Monitoring
 Use VariableProxy and VariableProxyGroup to read and update variables from an ELF image over an ST-Link probe — no firmware modification needed.
@@ -28,8 +28,9 @@ Supports symbol-based memory access and seamless integration with typical STM32 
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QMcuDebug
-import QMcuPlot
+
+import QMcu.Debug
+import QMcu.Plot
 
 ApplicationWindow {
     visible: true

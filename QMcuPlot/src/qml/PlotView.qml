@@ -4,7 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Effects
 
-import QMcuPlot
+import QMcu.Plot
 
 Rectangle {
     id: root

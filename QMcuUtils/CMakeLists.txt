@@ -43,12 +43,12 @@ qt_add_resources(QMcuUtils "icons"
 
 qt_add_qml_module(QMcuUtils
   PLUGIN_TARGET QMcuUtilsPlugin
-  URI QMcuUtils
+  URI QMcu.Utils
   VERSION 1.0
   QML_FILES
     src/qml/LoggingErrorDialog.qml
   RESOURCE_PREFIX /qmcu/utils
-  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcuUtils
+  OUTPUT_DIRECTORY ${QML_IMPORT_PATH}/QMcu/Utils
 )
 
 
@@ -57,9 +57,4 @@ install(TARGETS QMcuUtils
   BUNDLE DESTINATION .
   RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QMcu/Utils
-)
-
-install(DIRECTORY
-  "${QML_IMPORT_PATH}/QMcuUtils"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/qt6/qml"
 )

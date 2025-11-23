@@ -7,7 +7,7 @@ import QtQuick.Window
 import QtQuick.Effects
 import QtGraphs
 
-import QMcuPlot
+import QMcu.Plot
 import QPlotTest
 
 ApplicationWindow {

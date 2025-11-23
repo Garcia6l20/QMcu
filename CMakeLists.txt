@@ -17,18 +17,16 @@ find_package(lldb REQUIRED)
 find_package(stlink REQUIRED)
 find_package(Qt6 COMPONENTS Core Quick Qml Graphs ShaderTools REQUIRED)
 
-CPMAddPackage("gh:Neargye/magic_enum@0.9.7")
 CPMAddPackage(
-  NAME            fmt
-  GIT_REPOSITORY  https://github.com/fmtlib/fmt
-  GIT_TAG         12.0.0
-  OPTIONS
-    CMAKE_POSITION_INDEPENDENT_CODE ON
+  NAME      magic_enum
+  URL       https://github.com/Neargye/magic_enum/releases/download/v0.9.7/magic_enum-v0.9.7.tar.gz
+  URL_HASH  SHA256=c047bc7ca0b76752168140e7ae9a4a30d72bf6530c196fdfbf5105a39d40cc46
 )
+
 CPMAddPackage(
-  NAME            glm
-  GIT_REPOSITORY  https://github.com/g-truc/glm
-  GIT_TAG         1.0.2
+  NAME      glm
+  URL       https://github.com/g-truc/glm/releases/download/1.0.2/glm-1.0.2.zip
+  URL_HASH  SHA256=a41adf423315e35489c1e67689c7bb74c7edd4d207a477b7b19c45cd440c2f67
   OPTIONS
     CMAKE_POSITION_INDEPENDENT_CODE ON
 )
@@ -62,6 +60,12 @@ install(EXPORT QMcuTargets
     NAMESPACE QMcu::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/QMcu
 )
+
+install(DIRECTORY
+  "${QML_IMPORT_PATH}/QMcu"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/qt6/qml"
+)
+
 
 # Generate config file for find_package
 include(CMakePackageConfigHelpers)
