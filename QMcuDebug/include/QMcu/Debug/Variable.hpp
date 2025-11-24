@@ -31,6 +31,10 @@ public:
   Variable(lldb::SBValue value, Debugger* parent);
   virtual ~Variable() = default;
 
+  bool isResolved() noexcept
+  {
+    return loadValue_ != nullptr;
+  }
   QString        name();
   QString        display();
   Type*          type();
@@ -95,6 +99,7 @@ public slots:
 signals:
   void arrayElementCountChanged(uint64_t);
   void arrayElementOffsetChanged(uint64_t);
+  void resolved();
 
 private:
   inline Debugger*               debugger();

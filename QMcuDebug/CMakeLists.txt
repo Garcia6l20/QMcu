@@ -4,6 +4,7 @@ set(SRC
   src/Variable.cpp
   src/Type.cpp
   src/VariableProxy.cpp
+  src/ArrayProxy.cpp
   src/VariableProxyGroup.cpp
   src/AbstractVariableRecorder.cpp
   src/ScrollRecorder.cpp
@@ -19,6 +20,7 @@ set(PUBLIC_HEADERS
   include/QMcu/Debug/Variable.hpp
   include/QMcu/Debug/Type.hpp
   include/QMcu/Debug/VariableProxy.hpp
+  include/QMcu/Debug/ArrayProxy.hpp
   include/QMcu/Debug/VariableProxyGroup.hpp
   include/QMcu/Debug/AbstractVariableRecorder.hpp
   include/QMcu/Debug/ScrollRecorder.hpp

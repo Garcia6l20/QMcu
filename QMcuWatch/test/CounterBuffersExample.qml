@@ -97,7 +97,8 @@ ApplicationWindow {
     }
 
     BusyIndicator {
-        running: !dbg.running || dbg.launching
+        running: !dbg.launched
+        visible: !dbg.launched // disable it in order to prevent event grabbing
         anchors.centerIn: parent
     }
 }

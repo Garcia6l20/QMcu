@@ -361,6 +361,8 @@ void Plot::autoScale(int margin)
   zoomIn(fromNdc_.mapRect(ndcZoom).adjusted(0, -margin, 0, margin));
 }
 
+#define QMCU_PLOT_POINTINFO_MODE_LERP
+
 void Plot::updatePointInfos(QPointF const& pt, QList<PlotPointInfo>& pis)
 {
   const auto ndc = toNdc_.map(pt);
@@ -387,16 +389,22 @@ void Plot::updatePointInfos(QPointF const& pt, QList<PlotPointInfo>& pis)
             {
               return;
             }
-            const auto index    = std::clamp(int(ppi.mouseDataPoint.x()), 0, int(data.size() - 1));
-            const auto value    = data[index];
-            ppi.seriesDataPoint = {ppi.mouseDataPoint.x(), double(value)};
-            ppi.seriesUnitPoint = ctx.unit.fromData.map(ppi.seriesDataPoint);
-            // const auto seriesZoomedNdcPoint = ctx.data.toNdc.map(ppi.seriesDataPoint);
-            // const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
+            const auto prevMouseDataX = ppi.mouseDataPoint.x();
+            const auto index          = std::clamp(int(prevMouseDataX), 0, int(data.size() - 1));
+#ifdef QMCU_PLOT_POINTINFO_MODE_LERP
+            const auto next  = std::min(index + 1, int(data.size() - 1));
+            const auto alpha = prevMouseDataX - int(prevMouseDataX);
+            const auto value = std::lerp(double(data[index]), double(data[next]), alpha);
+#else // basic mode: previous neighbor
+            const auto value = data[index];
+#endif
+
+            ppi.seriesDataPoint             = {ppi.mouseDataPoint.x(), double(value)};
+            ppi.seriesUnitPoint             = ctx.unit.fromData.map(ppi.seriesDataPoint);
             const auto seriesZoomedNdcPoint = ctx.unit.toNdc.map(ppi.seriesUnitPoint);
             const auto seriesNdcPoint       = ctx.view.transform.map(seriesZoomedNdcPoint);
             ppi.seriesLocalPoint            = fromNdc_.map(seriesNdcPoint);
-            // qDebug(lcPlot).nospace() << "s#" << ii << " qt=" << pt << " ndc=" << ndc
+            // qDebug(lcPlot).nospace() << " qt=" << pt << " ndc=" << ndc
             //                    << " ndc_zoomed=" << ndc_zoomed << " => data=" <<
             //                    ppi.seriesDataPoint
             //                    << " => unit=" << ppi.seriesUnitPoint;

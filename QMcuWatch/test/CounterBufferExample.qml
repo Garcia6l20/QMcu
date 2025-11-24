@@ -21,7 +21,7 @@ ApplicationWindow {
 
     Material.theme: Material.Light
 
-    LoggingErrorDialog {}
+    // LoggingErrorDialog {}
 
     Debugger {
         id: dbg
@@ -44,15 +44,21 @@ ApplicationWindow {
     Timer {
         interval: 250
         repeat: true
-        running: dbg.launched
+        running: dbg.launched && play.checked
         onTriggered: {
             proxies.update();
             plot.update();
         }
     }
 
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
+
+        PlayButton {
+            id: play
+            checked: true
+        }
+
         PlotView {
             id: plot
             title: "Counter Plot"
@@ -61,7 +67,7 @@ ApplicationWindow {
 
             axisX: ValueAxis {
                 min: 0
-                max: 16
+                max: counterBuffer.size
             }
 
             axisY: ValueAxis {
@@ -71,7 +77,8 @@ ApplicationWindow {
 
             PlotLineSeries {
                 BufferPlotProvider {
-                    VariableProxy {
+                    ArrayProxy {
+                        id: counterBuffer
                         name: "counterBuffer"
                         group: proxies
                     }
@@ -82,6 +89,7 @@ ApplicationWindow {
 
     BusyIndicator {
         running: !dbg.launched
+        visible: !dbg.launched // disable it in order to prevent event grabbing
         anchors.centerIn: parent
     }
 }

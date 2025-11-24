@@ -55,8 +55,11 @@ void Variable::resolve()
         dbg->process().ReadMemory(address, data.data(), data.size_bytes(), error);
         if(error.Fail())
         {
-          qCritical(lcWatcher) << "Failed to read memory at address" << address << ":"
-                               << error.GetCString();
+          qCritical(lcWatcher)
+              << "Failed to read memory at address"
+              << address
+              << ":"
+              << error.GetCString();
           return false;
         }
         return true;
@@ -146,7 +149,8 @@ void Variable::resolve()
     switch(get_meta_type(value))
     {
       case QMetaType::Bool:
-        return [this, reader = get_reader_for.template operator()<bool>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<bool>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Bool)
           {
             var.emplace<bool>();
@@ -155,7 +159,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::Char:
-        return [this, reader = get_reader_for.template operator()<int8_t>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<int8_t>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Char)
           {
             var.emplace<int8_t>();
@@ -164,7 +169,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::Short:
-        return [this, reader = get_reader_for.template operator()<int16_t>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<int16_t>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Short)
           {
             var.emplace<int16_t>();
@@ -173,7 +179,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::Int:
-        return [this, reader = get_reader_for.template operator()<int32_t>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<int32_t>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Int)
           {
             var.emplace<int32_t>();
@@ -182,7 +189,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::LongLong:
-        return [this, reader = get_reader_for.template operator()<int64_t>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<int64_t>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::LongLong)
           {
             var.emplace<int64_t>();
@@ -191,7 +199,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::UChar:
-        return [this, reader = get_reader_for.template operator()<uint8_t>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<uint8_t>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::UChar)
           {
             var.emplace<uint8_t>();
@@ -200,37 +209,38 @@ void Variable::resolve()
         };
         break;
       case QMetaType::UShort:
-        return
-            [this, reader = get_reader_for.template operator()<uint16_t>(value_)](QVariant& var) {
-              if(var.metaType().id() != QMetaType::UShort)
-              {
-                var.emplace<uint16_t>();
-              }
-              return reader(var.data());
-            };
+        return [this, reader = get_reader_for.template operator()<uint16_t>(value_)](QVariant& var)
+        {
+          if(var.metaType().id() != QMetaType::UShort)
+          {
+            var.emplace<uint16_t>();
+          }
+          return reader(var.data());
+        };
         break;
       case QMetaType::UInt:
-        return
-            [this, reader = get_reader_for.template operator()<uint32_t>(value_)](QVariant& var) {
-              if(var.metaType().id() != QMetaType::UInt)
-              {
-                var.emplace<uint32_t>();
-              }
-              return reader(var.data());
-            };
+        return [this, reader = get_reader_for.template operator()<uint32_t>(value_)](QVariant& var)
+        {
+          if(var.metaType().id() != QMetaType::UInt)
+          {
+            var.emplace<uint32_t>();
+          }
+          return reader(var.data());
+        };
         break;
       case QMetaType::ULongLong:
-        return
-            [this, reader = get_reader_for.template operator()<uint64_t>(value_)](QVariant& var) {
-              if(var.metaType().id() != QMetaType::ULongLong)
-              {
-                var.emplace<uint64_t>();
-              }
-              return reader(var.data());
-            };
+        return [this, reader = get_reader_for.template operator()<uint64_t>(value_)](QVariant& var)
+        {
+          if(var.metaType().id() != QMetaType::ULongLong)
+          {
+            var.emplace<uint64_t>();
+          }
+          return reader(var.data());
+        };
         break;
       case QMetaType::Float:
-        return [this, reader = get_reader_for.template operator()<float>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<float>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Float)
           {
             var.emplace<float>();
@@ -239,7 +249,8 @@ void Variable::resolve()
         };
         break;
       case QMetaType::Double:
-        return [this, reader = get_reader_for.template operator()<double>(value_)](QVariant& var) {
+        return [this, reader = get_reader_for.template operator()<double>(value_)](QVariant& var)
+        {
           if(var.metaType().id() != QMetaType::Double)
           {
             var.emplace<double>();
@@ -260,28 +271,16 @@ void Variable::resolve()
   }
   else if(type()->isArray())
   {
-    QList<int> extents;
-    auto       tmp_val = value_;
-    while(true)
-    {
-      const auto child_count = tmp_val.GetNumChildren();
-      if(child_count == 0)
-      {
-        break;
-      }
-      extents.append(child_count);
-      tmp_val = tmp_val.GetChildAtIndex(0);
-    }
-
+    QList<int> extents = type()->extents();
     if(extents.size() > 1)
     {
       qFatal(lcWatcher) << "Multidimensional arrays not handled yet";
     }
 
     const size_t dimension_size = std::min(uint64_t(extents[0]), arrayElementCount_);
-    const auto   valuesize      = tmp_val.GetByteSize();
+    const auto   valuesize      = type()->elementSize();
 
-    const auto tid     = get_meta_type(tmp_val);
+    const auto tid     = type()->elementTypeId();
     const auto address = get_address(value_) + (arrayElementOffset_ * valuesize);
     auto       reader  = get_reader(address);
     void*      local_data;
@@ -457,6 +456,7 @@ void Variable::resolve()
   }
 
   qDebug(lcWatcher) << value_.GetName() << "resolved";
+  emit resolved();
 }
 
 Debugger* Variable::debugger()
@@ -510,8 +510,11 @@ bool Variable::read(std::span<std::byte> data)
     debugger()->process().ReadMemory(address, data.data(), data.size_bytes(), error);
     if(error.Fail())
     {
-      qCritical(lcWatcher) << "Failed to read memory at address" << address << ":"
-                           << error.GetCString();
+      qCritical(lcWatcher)
+          << "Failed to read memory at address"
+          << address
+          << ":"
+          << error.GetCString();
       return false;
     }
     return true;

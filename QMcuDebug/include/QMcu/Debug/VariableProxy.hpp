@@ -103,6 +103,7 @@ public slots:
 signals:
   void nameChanged();
   void variableChanged();
+  void variableResolved();
   void valueChanged();
   void valueUnChanged();
   void transformChanged();

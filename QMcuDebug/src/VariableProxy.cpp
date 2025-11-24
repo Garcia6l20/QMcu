@@ -29,6 +29,11 @@ VariableProxy::VariableProxy(QObject* parent) : QObject{parent}
                 return;
               }
               emit variableChanged();
+              connect(variable_, &Variable::resolved, this, &VariableProxy::variableResolved);
+              if (variable_->isResolved())
+              {
+                emit variableResolved();
+              }
               if(StLinkProbe::instance() == nullptr)
               {
                 connect(dbg, &Debugger::processStopped, this, &VariableProxy::refresh);
