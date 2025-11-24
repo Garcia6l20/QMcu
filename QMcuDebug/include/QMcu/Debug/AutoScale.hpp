@@ -12,7 +12,7 @@ class AutoScale : public QObject
 
   Q_PROPERTY(qreal xMargin READ xMargin WRITE setXMargin)
   Q_PROPERTY(qreal yMargin READ yMargin WRITE setYMargin)
-  Q_PROPERTY(QList<QXYSeries*> series WRITE setSeries)
+  Q_PROPERTY(QList<QXYSeries*> series READ series WRITE setSeries)
 
 public:
   struct Range
@@ -33,6 +33,10 @@ public:
   qreal yMargin() const noexcept
   {
     return yMargin_;
+  }
+  QList<QXYSeries*> series() const noexcept
+  {
+    return series_;
   }
 
 public slots:

@@ -57,8 +57,8 @@ class Plot : public QQuickItem
 
   Q_PROPERTY(QList<PlotPointInfo> pointInfos READ pointInfos NOTIFY pointInfosChanged)
 
-  Q_PROPERTY(float border WRITE setBorder)
-  Q_PROPERTY(float radius WRITE setRadius)
+  Q_PROPERTY(float border READ border WRITE setBorder FINAL)
+  Q_PROPERTY(float radius READ radius WRITE setRadius FINAL)
 
 public:
   Plot(QQuickItem* parent = nullptr);
@@ -136,6 +136,15 @@ public:
   PlotGrid* grid() noexcept
   {
     return grid_;
+  }
+
+  float border() const noexcept
+  {
+    return border_;
+  }
+  float radius() const noexcept
+  {
+    return radius_;
   }
 
 public slots:

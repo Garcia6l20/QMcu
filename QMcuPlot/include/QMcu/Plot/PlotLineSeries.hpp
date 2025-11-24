@@ -21,7 +21,7 @@ class PlotLineSeries : public AbstractPlotSeries
   Q_PROPERTY(QColor lineColor READ lineColor WRITE setLineColor NOTIFY lineColorChanged)
   Q_PROPERTY(float thickness READ thickness WRITE setThickness NOTIFY thicknessChanged)
   Q_PROPERTY(float glow READ glow WRITE setGlow NOTIFY glowChanged)
-  Q_PROPERTY(float lineWidth WRITE setLineWidth FINAL)
+  Q_PROPERTY(float lineWidth READ lineWidth WRITE setLineWidth FINAL)
 
 public:
   explicit PlotLineSeries(QObject* parent = nullptr);
@@ -38,6 +38,10 @@ public:
   float glow() const noexcept
   {
     return glow_;
+  }
+  float lineWidth() const noexcept
+  {
+    return lineWidth_;
   }
 
 public slots:
