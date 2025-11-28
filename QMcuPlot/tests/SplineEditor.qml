@@ -5,7 +5,10 @@ import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtGraphs
+
 import QMcu.Plot
+import QMcu.Utils
+
 import Qt.labs.platform
 
 ApplicationWindow {
@@ -52,37 +55,31 @@ ApplicationWindow {
         points: root.points
     }
 
-    FileIO {
-        id: fio
-    }
-
     FileDialog {
         id: fileDialog
         // currentFolder: StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
         nameFilters: ["JSON Files (*.json)"]
         onAccepted: {
             if (fileMode == FileDialog.OpenFile) {
-                fio.source = fileDialog.currentFile;
-                if (!fio.read()) {
-                    console.log(`${fio.source} cannot be read !`);
+                const text = FileIO.readText(fileDialog.currentFile);
+                if (!text.length) {
+                    console.log(`${fileDialog.currentFile} cannot be read !`);
                     return;
                 }
-                const data = JSON.parse(fio.text);
+                const data = JSON.parse(text);
                 let points = [];
                 for (const i of data) {
                     points.push(Qt.point(i.x, i.y));
                 }
                 root.points = points;
                 graphsView.updateSeries();
-                console.log(`${fio.source} loaded !`);
+                console.log(`${fileDialog.currentFile} loaded !`);
             } else {
-                fio.source = fileDialog.currentFile;
-                fio.text = JSON.stringify(root.points);
-                if (!fio.write()) {
-                    console.log(`${fio.source} cannot be written !`);
+                if (!FileIO.writeText(fileDialog.currentFile, JSON.stringify(root.points))) {
+                    console.log(`${fileDialog.currentFile} cannot be written !`);
                     return;
                 }
-                console.log(`${fio.source} written !`);
+                console.log(`${fileDialog.currentFile} written !`);
             }
         }
     }

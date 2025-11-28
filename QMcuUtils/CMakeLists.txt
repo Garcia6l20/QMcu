@@ -1,10 +1,14 @@
 
 set(SRC
   src/LogInterceptor.cpp
+  src/CurveInterpolator.cpp
+  src/FileIO.cpp
 )
 
 set(PUBLIC_HEADERS
   include/QMcu/Utils/LogInterceptor.hpp
+  include/QMcu/Utils/CurveInterpolator.hpp
+  include/QMcu/Utils/FileIO.hpp
 )
 
 qt_add_library(QMcuUtils SHARED

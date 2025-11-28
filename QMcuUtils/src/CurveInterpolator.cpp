@@ -1,4 +1,4 @@
-#include <QMcu/Plot/CurveInterpolator.hpp>
+#include <QMcu/Utils/CurveInterpolator.hpp>
 
 CurveInterpolator::CurveInterpolator(QObject* parent)
     : QObject(parent), eCurve_(QEasingCurve::Type::BezierSpline)

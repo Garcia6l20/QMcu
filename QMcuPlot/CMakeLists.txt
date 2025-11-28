@@ -76,8 +76,6 @@ set(SRC
   src/PlotSceneItem.cpp
   src/PlotGrid.cpp
   src/Logging.cpp
-  src/CurveInterpolator.cpp
-  src/FileIO.cpp
 )
 
 set(PUBLIC_HEADERS
@@ -89,8 +87,6 @@ set(PUBLIC_HEADERS
   include/QMcu/Plot/PlotScene.hpp
   include/QMcu/Plot/PlotSceneItem.hpp
   include/QMcu/Plot/PlotGrid.hpp
-  include/QMcu/Plot/CurveInterpolator.hpp
-  include/QMcu/Plot/FileIO.hpp
 )
 
 qt_add_library(QMcuPlot SHARED
