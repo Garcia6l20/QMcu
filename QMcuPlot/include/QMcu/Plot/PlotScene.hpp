@@ -80,7 +80,6 @@ private:
     float     radius;
   } stencilUbo;
 
-  vk::PipelineCache  stencilPipelineCache_;
   vk::PipelineLayout stencilPipelineLayout_;
   vk::Pipeline       stencilPipeline_;
 

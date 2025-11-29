@@ -50,7 +50,7 @@ void* AbstractPlotSeries::createMappedBuffer(qplot::TypeId           tid,
   return mappedPtr;
 }
 
-void AbstractPlotSeries::releaseResources()
+void AbstractPlotSeries::doReleaseResources()
 {
   ctx_.vbo.releaseResources(vkContext().dev);
 }

@@ -59,9 +59,9 @@ signals:
   void colorChanged(QColor const&);
 
 protected:
-  bool initialize() final;
-  void draw() final;
-  void releaseResources() final;
+  bool doInitialize() final;
+  void doDraw() final;
+  void doReleaseResources() final;
 
 private:
   QColor color_ = Qt::GlobalColor::lightGray;
@@ -73,11 +73,7 @@ private:
     glm::vec2 boundingSize;
   } push_;
 
-  uint32_t  ticks_ = 5;
-
-  vk::Pipeline       pipeline_;
-  vk::PipelineCache  pipelineCache_;
-  vk::PipelineLayout pipelineLayout_;
+  uint32_t ticks_ = 5;
 
   vk::Buffer       vbuf_{};
   vk::DeviceMemory vbufMem_{};

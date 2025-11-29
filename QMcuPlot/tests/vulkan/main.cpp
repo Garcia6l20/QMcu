@@ -38,10 +38,11 @@ int main(int argc, char** argv)
       VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
       VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME,
       VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
-      "VK_KHR_multiview",
-      "VK_KHR_maintenance2",
-      "VK_KHR_create_renderpass2",
-      "VK_KHR_get_physical_device_properties2",
+      VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+      VK_KHR_MULTIVIEW_EXTENSION_NAME,
+      VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+      VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
   });
 
   if(!inst.create())

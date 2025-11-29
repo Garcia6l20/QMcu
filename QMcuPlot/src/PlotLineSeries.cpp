@@ -108,7 +108,7 @@ void PlotLineSeries::updateMetadata()
   }
 }
 
-bool PlotLineSeries::initialize()
+bool PlotLineSeries::doInitialize()
 {
   auto* const provider = dataProvider();
   if(not provider)
@@ -211,7 +211,7 @@ bool PlotLineSeries::initialize()
   builder.descSetLayoutBindings.emplace_back(descSetLayoutBinding);
 
   std::vector<vk::DescriptorSetLayout> dsl;
-  std::tie(pipeline_, pipelineCache_, pipelineLayout_, dsl) = builder.build();
+  std::tie(pipeline_, pipelineLayout_, dsl) = builder.build();
 
   uniformsSetLayout_ = dsl.at(0);
   dataSetLayout_     = dsl.at(1);
@@ -267,7 +267,7 @@ bool PlotLineSeries::initialize()
   return true;
 }
 
-void PlotLineSeries::releaseResources()
+void PlotLineSeries::doReleaseResources()
 {
   if(pipeline_ != nullptr)
   {
@@ -275,7 +275,6 @@ void PlotLineSeries::releaseResources()
     auto& dev = vk.dev;
     dev.destroy(pipeline_);
     dev.destroy(pipelineLayout_);
-    dev.destroy(pipelineCache_);
 
     dev.free(ubufMem_);
     dev.destroy(ubuf_);
@@ -288,10 +287,10 @@ void PlotLineSeries::releaseResources()
     dev.destroy(descriptorPool_);
   }
 
-  AbstractPlotSeries::releaseResources();
+  AbstractPlotSeries::doReleaseResources();
 }
 
-void PlotLineSeries::draw()
+void PlotLineSeries::doDraw()
 {
   if(isDirty())
   {

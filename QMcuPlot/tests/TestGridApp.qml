@@ -40,6 +40,8 @@ ApplicationWindow {
                 anchors.fill: parent
                 grid.color: "red"
                 grid.ticks: 10
+                border: 2
+                radius: 64
 
                 // layer.enabled: true
             }

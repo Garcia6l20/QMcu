@@ -6,6 +6,12 @@
 
 #include <QMcu/Plot/Plot.hpp>
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QStandardPaths>
+
+#include <Logging.hpp>
+
 #include <rhi/qrhi.h>
 
 #include <magic_enum/magic_enum.hpp>
@@ -73,8 +79,6 @@ void PlotScene::setupStencilPipeline()
 #ifdef ENABLE_STENCIL_MASK
   auto& vk  = vk_;
   auto& dev = vk.dev;
-
-  stencilPipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
 
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 
@@ -185,8 +189,7 @@ void PlotScene::setupStencilPipeline()
   pipelineInfo.renderPass = vk.rp;
 
   vk::Result res;
-  std::tie(res, stencilPipeline_) =
-      vk.dev.createGraphicsPipeline(stencilPipelineCache_, pipelineInfo);
+  std::tie(res, stencilPipeline_) = vk.dev.createGraphicsPipeline(vk.pipelineCache, pipelineInfo);
 
   vk.dev.destroyShaderModule(vertShaderModule);
   vk.dev.destroyShaderModule(fragShaderModule);
@@ -211,6 +214,99 @@ void PlotScene::setupStencilPipeline()
 
   vk.sceneDS.front = vk.sceneDS.back = vk.stencilTest;
 #endif
+}
+
+QString getCacheFilepath(QString const& prefix, QString const& filename)
+{
+  static auto userCacheRoot = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+  auto        root          = QDir(userCacheRoot).filePath(prefix);
+
+  QDir d;
+  if(not d.exists(root))
+  {
+    if(not d.mkpath(root))
+    {
+      qWarning(lcPlot) << "Failed to create cache directory";
+    }
+  }
+  return QDir(root).filePath(filename);
+}
+
+bool isOutdated(QString const& filepath)
+{
+  static const QDateTime buildTime = []
+  {
+    const auto      app = QCoreApplication::instance();
+    const QFileInfo info(app->applicationFilePath());
+    return info.lastModified().toUTC();
+  }();
+
+  const QFileInfo info(filepath);
+  if(not info.exists())
+  {
+    return true;
+  }
+  const QDateTime fileTime = info.lastModified().toUTC();
+  return buildTime.toSecsSinceEpoch() > fileTime.toSecsSinceEpoch();
+}
+
+void loadPipelineCache(VulkanContext& vk)
+{
+  if(vk.pipelineCache != nullptr)
+  {
+    return;
+  }
+
+  const auto cachePath = getCacheFilepath("QMcu/Plot", "scene_cache");
+
+  if(not isOutdated(cachePath))
+  {
+    qDebug(lcPlot) << "Using cached pipeline:" << cachePath;
+    QFile f(cachePath);
+    if(not f.open(QIODevice::ReadOnly))
+    {
+      qWarning(lcPlot) << "Failed to open pipeline cache: " << cachePath;
+    }
+    else
+    {
+      const auto                  data = f.readAll();
+      vk::PipelineCacheCreateInfo createInfo{{}, size_t(data.size()), data.data()};
+      vk.pipelineCache = vk.dev.createPipelineCache(createInfo);
+      f.close();
+    }
+  }
+  else
+  {
+    vk.pipelineCache = vk.dev.createPipelineCache({});
+  }
+}
+
+void savePipelineCache(VulkanContext& vk)
+{
+  if(vk.pipelineCache == nullptr)
+  {
+    return;
+  }
+  const auto cachePath = getCacheFilepath("QMcu/Plot", "scene_cache");
+  const auto data      = vk.dev.getPipelineCacheData(vk.pipelineCache);
+  QFile      f(cachePath);
+  if(not f.open(QIODevice::WriteOnly))
+  {
+    qWarning(lcPlot) << "Failed to open pipeline cache: " << cachePath;
+  }
+  else
+  {
+    qDebug(lcPlot).nospace()
+        << "Saving pipeline cache: "
+        << cachePath
+        << " ("
+        << data.size()
+        << " bytes)";
+    f.write(reinterpret_cast<const char*>(data.data()), data.size());
+    f.close();
+  }
+  vk.dev.destroy(vk.pipelineCache);
+  vk.pipelineCache = nullptr;
 }
 
 void PlotScene::prepare()
@@ -254,6 +350,8 @@ void PlotScene::prepare()
     poolInfo.queueFamilyIndex = queueFamily;
     vk.commandPool            = vk.dev.createCommandPool(poolInfo);
 
+    loadPipelineCache(vk);
+
     setupStencilPipeline();
 
     initialized_ = true;
@@ -261,11 +359,7 @@ void PlotScene::prepare()
 
   for(auto* r : renderers_)
   {
-    if(not r->isInitialized())
-    {
-      r->vk_          = &vk_;
-      r->initialized_ = r->initialize();
-    }
+    r->initialize(vk_);
   }
 }
 
@@ -336,13 +430,11 @@ void PlotScene::render(const RenderState* state)
 
 void PlotScene::releaseResources()
 {
+  savePipelineCache(vk_);
+
   for(auto* r : renderers_)
   {
-    if(r->isInitialized())
-    {
-      r->releaseResources();
-      r->initialized_ = false;
-    }
+    r->release();
   }
 
   auto& vk = vk_;
@@ -351,7 +443,6 @@ void PlotScene::releaseResources()
   if(stencilPipeline_)
   {
     vk.dev.destroy(stencilPipeline_);
-    vk.dev.destroy(stencilPipelineCache_);
     vk.dev.destroy(stencilPipelineLayout_);
 
     vk.dev.destroy(stencilVBuf_);

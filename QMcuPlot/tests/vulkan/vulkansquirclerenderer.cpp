@@ -16,7 +16,7 @@ static const float vertices[] = {-1, -1, 1, -1, -1, 1, 1, 1};
 
 const int UBUF_SIZE = 4;
 
-void SquircleRenderer::draw()
+void SquircleRenderer::doDraw()
 {
   auto& vk = vkContext();
   auto& cb = vk.commandBuffer;
@@ -79,7 +79,7 @@ void SquircleRenderer::prepareShader(Stage stage)
 
 #define USE_BUILDER
 
-bool SquircleRenderer::initialize()
+bool SquircleRenderer::doInitialize()
 {
   auto& vk = vkContext();
 
@@ -197,11 +197,10 @@ bool SquircleRenderer::initialize()
 
   vk::Result res;
 
-  auto const& [pipeline, cache, layout, setLayouts] = builder.build();
-  pipeline_                                         = pipeline;
-  pipelineCache_                                    = cache;
-  pipelineLayout_                                   = layout;
-  resLayout_                                        = setLayouts.at(0);
+  auto const& [pipeline, layout, setLayouts] = builder.build();
+  pipeline_                                  = pipeline;
+  pipelineLayout_                            = layout;
+  resLayout_                                 = setLayouts.at(0);
 #else
 
   pipelineCache_ = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
@@ -342,7 +341,7 @@ bool SquircleRenderer::initialize()
   return true;
 }
 
-void SquircleRenderer::releaseResources()
+void SquircleRenderer::doReleaseResources()
 {
   qDebug("cleanup");
   if(!hasContext())
@@ -360,7 +359,6 @@ void SquircleRenderer::releaseResources()
   vk.dev.destroy(pipelineLayout_);
   vk.dev.destroy(resLayout_);
   vk.dev.destroy(descriptorPool_);
-  vk.dev.destroy(pipelineCache_);
   vk.dev.destroy(vbuf_);
   vk.dev.free(vbufMem_);
   vk.dev.destroy(ubuf_);

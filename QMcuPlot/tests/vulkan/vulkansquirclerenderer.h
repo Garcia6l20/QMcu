@@ -16,9 +16,9 @@ public:
   }
 
 protected:
-  bool initialize() final;
-  void draw() final;
-  void releaseResources() final;
+  bool doInitialize() final;
+  void doDraw() final;
+  void doReleaseResources() final;
 
 private:
   enum Stage
@@ -38,8 +38,6 @@ private:
   vk::Buffer       ubuf_{};
   vk::DeviceMemory ubufMem_{};
   vk::DeviceSize   allocPerUbuf_ = 0;
-
-  vk::PipelineCache pipelineCache_{};
 
   vk::PipelineLayout      pipelineLayout_{};
   vk::DescriptorSetLayout resLayout_{};

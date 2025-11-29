@@ -121,7 +121,7 @@ protected:
   {
     return ctx_;
   }
-  void releaseResources() override;
+  void doReleaseResources() override;
 
   void* createMappedBuffer(qplot::TypeId type, size_t count, vk::BufferUsageFlagBits usage);
 

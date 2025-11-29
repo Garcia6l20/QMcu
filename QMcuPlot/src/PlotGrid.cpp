@@ -30,15 +30,11 @@ QByteArray getShader(QString const& filename)
   return f.readAll();
 }
 
-bool PlotGrid::initialize()
+bool PlotGrid::doInitialize()
 {
   auto& vk = vkContext();
 
   auto builder = VulkanPipelineBuilder(vk);
-  builder.inputAssemblyInfo.setTopology(vk::PrimitiveTopology::eLineList);
-
-  builder.addStage("grid.vert.spv", vk::ShaderStageFlagBits::eVertex);
-  builder.addStage("grid.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
   const size_t verticesCount = ticks_ * 2 * 2; // 2 per ticks, vertical + horizontal
   size_t       verticesBufferSize;
@@ -60,11 +56,16 @@ bool PlotGrid::initialize()
                                                   // Horizontal line
                                                   p[8 * ii + 4] = -1.0;
                                                   p[8 * ii + 5] = r;
-                                                  
+
                                                   p[8 * ii + 6] = 1.0;
                                                   p[8 * ii + 7] = r;
                                                 }
                                               });
+
+  builder.inputAssemblyInfo.setTopology(vk::PrimitiveTopology::eLineList);
+
+  builder.addStage("grid.vert.spv", vk::ShaderStageFlagBits::eVertex);
+  builder.addStage("grid.frag.spv", vk::ShaderStageFlagBits::eFragment);
 
   builder.vertexBinding.setStride(2 * sizeof(float));
   builder.vertexAttr.setFormat(vk::Format::eR32G32Sfloat);
@@ -82,12 +83,12 @@ bool PlotGrid::initialize()
   builder.pushConstantsRange.setSize(sizeof(push_));
 
   std::vector<vk::DescriptorSetLayout> dsl;
-  std::tie(pipeline_, pipelineCache_, pipelineLayout_, dsl) = builder.build();
+  std::tie(pipeline_, pipelineLayout_, dsl) = builder.build();
 
   return true;
 }
 
-void PlotGrid::releaseResources()
+void PlotGrid::doReleaseResources()
 {
   if(pipeline_ != nullptr)
   {
@@ -95,14 +96,13 @@ void PlotGrid::releaseResources()
     auto& dev = vk.dev;
     dev.destroy(pipeline_);
     dev.destroy(pipelineLayout_);
-    dev.destroy(pipelineCache_);
 
     dev.destroy(vbuf_);
     dev.free(vbufMem_);
   }
 }
 
-void PlotGrid::draw()
+void PlotGrid::doDraw()
 {
   auto& vk = vkContext();
   auto& cb = vk.commandBuffer;

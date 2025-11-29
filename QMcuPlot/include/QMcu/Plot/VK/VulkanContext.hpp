@@ -46,6 +46,8 @@ struct VulkanContext
 
   glm::mat4 modelViewProjection;
 
+  static vk::PipelineCache pipelineCache;
+
   vk::SampleCountFlagBits rasterizationSamples = []
   {
     auto const fmt = QSurfaceFormat::defaultFormat();

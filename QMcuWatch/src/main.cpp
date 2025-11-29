@@ -15,6 +15,8 @@
 #include <QQuickWindow>
 #include <QSurfaceFormat>
 
+#include <QVulkanInstance>
+
 QStringList
     patchPaths(QStringList const& expectedPaths, QString const& suffix, QStringList const originals)
 {
@@ -69,9 +71,28 @@ int main(int argc, char** argv)
       patchPaths(expectedBasePaths, "plugins", QCoreApplication::libraryPaths()));
 
   QGuiApplication app(argc, argv);
-  app.setOrganizationName("tpl");
-  app.setOrganizationDomain("dev");
-  app.setApplicationName("QMcuWatch");
+  app.setOrganizationName("QMcu");
+  app.setApplicationName("Watch");
+
+  QVulkanInstance inst;
+
+  // inst.setLayers({"VK_LAYER_KHRONOS_validation"});
+  inst.setApiVersion(QVersionNumber(1, 4));
+  inst.setExtensions({
+      VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+      VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME,
+      VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
+      VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+      VK_KHR_MULTIVIEW_EXTENSION_NAME,
+      VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+      VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+  });
+
+  if(!inst.create())
+  {
+    qFatal("Failed to create Vulkan instance with validation layers");
+  }
 
   QCommandLineParser parser;
   QCommandLineOption configOpt{QStringList() << "c" << "config", "Configuration file", "config"};

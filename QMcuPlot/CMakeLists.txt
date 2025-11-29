@@ -76,6 +76,7 @@ set(SRC
   src/PlotSceneItem.cpp
   src/PlotGrid.cpp
   src/Logging.cpp
+  src/VK/VulkanContext.cpp
 )
 
 set(PUBLIC_HEADERS

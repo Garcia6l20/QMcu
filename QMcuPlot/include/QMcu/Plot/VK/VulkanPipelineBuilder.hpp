@@ -81,14 +81,12 @@ public:
     pipelineInfo.setPVertexInputState(&vertexInputInfo);
     pipelineInfo.setPDynamicState(&dynamicInfo);
 
-    auto cache = vk.dev.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
-    auto [res, pipeline] = vk.dev.createGraphicsPipeline(cache, pipelineInfo);
+    auto [res, pipeline] = vk.dev.createGraphicsPipeline(vk.pipelineCache, pipelineInfo);
     if(res != vk::Result::eSuccess)
     {
       qFatal().nospace() << "Failed to create graphics pipeline";
     }
-    return std::make_tuple(pipeline, cache, layout, setLayouts);
+    return std::make_tuple(pipeline, layout, setLayouts);
   }
 
 private:

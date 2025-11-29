@@ -78,16 +78,15 @@ public slots:
     }
   }
 
-
 signals:
   void lineColorChanged();
   void thicknessChanged(float);
   void glowChanged(float);
 
 protected:
-  bool initialize() final;
-  void draw() final;
-  void releaseResources() final;
+  bool doInitialize() final;
+  void doDraw() final;
+  void doReleaseResources() final;
 
 private:
   void updateMetadata();
@@ -113,14 +112,10 @@ private:
     glm::uint tid;
   } ubo;
 
-  QColor    lineColor_ = Qt::red;
-  float     thickness_ = 7 / 100.0f;
-  float     glow_      = 1 / 100.0f;
-  float     lineWidth_ = 2.0f;
-
-  vk::Pipeline       pipeline_       = nullptr;
-  vk::PipelineCache  pipelineCache_  = nullptr;
-  vk::PipelineLayout pipelineLayout_ = nullptr;
+  QColor lineColor_ = Qt::red;
+  float  thickness_ = 7 / 100.0f;
+  float  glow_      = 1 / 100.0f;
+  float  lineWidth_ = 2.0f;
 
   vk::Buffer       ubuf_    = nullptr;
   vk::DeviceMemory ubufMem_ = nullptr;

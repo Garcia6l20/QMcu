@@ -27,10 +27,18 @@ public:
     return initialized_;
   }
 
+  bool initialize(VulkanContext& ctx);
+  void release();
+
+  inline void draw()
+  {
+    doDraw();
+  }
+
 protected:
-  virtual bool initialize()       = 0;
-  virtual void draw()             = 0;
-  virtual void releaseResources() = 0;
+  virtual bool    doInitialize()       = 0;
+  virtual void    doDraw()             = 0;
+  virtual void    doReleaseResources() = 0;
 
   bool hasContext() const noexcept
   {
@@ -42,9 +50,10 @@ protected:
     return *vk_;
   }
 
-private:
-  friend PlotScene;
+  vk::Pipeline       pipeline_       = nullptr;
+  vk::PipelineLayout pipelineLayout_ = nullptr;
 
+private:
   VulkanContext* vk_ = nullptr;
 
   bool dirty_       = true;
