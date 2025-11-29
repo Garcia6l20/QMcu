@@ -17,6 +17,7 @@ macro(vulkan_compile_shaders target)
     set(output ${CMAKE_CURRENT_BINARY_DIR}/shaders/${name}.spv)
     list(APPEND _outputs ${output})
     add_custom_command(OUTPUT ${output}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
       COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=${stage} --target-env=vulkan1.4 ${shader} -o ${output}
       DEPENDS ${shader}
       COMMENT "Compiling ${shader}...")
@@ -131,11 +132,17 @@ target_include_directories(QMcuPlot
     # MOC does not use this path
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/QMcu/Plot>
 )
+
+if (NOT TARGET Qt6::GuiPrivate)
+  set(QT_NO_PRIVATE_MODULE_WARNING ON)
+  find_package(Qt6 COMPONENTS GuiPrivate REQUIRED)
+endif()
+
 target_link_libraries(QMcuPlot
   PUBLIC
     Qt6::Quick Qt6::Qml Qt6::Graphs
-  PRIVATE
     glm::glm
+  PRIVATE
     GLU
     vulkan
     Qt6::GuiPrivate

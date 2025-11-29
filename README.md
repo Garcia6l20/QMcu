@@ -91,8 +91,10 @@ Run with: `QMcuWatch my-watcher.qml`
 
 Following libraries are required to be installed on the system:
 
-- liblldb: used for symbol resolution
-- libstlink: used for MCU communication
+- lldb: used for symbol resolution
+- stlink: used for MCU communication
+- glm: matrix operations
+- vulkan: GPU accelerated renderings
 - Qt6:
   - Core
   - Qml
@@ -101,7 +103,16 @@ Following libraries are required to be installed on the system:
 Following libraries are used internally (automatically fetcher during compilation):
 
 - magic_enum: used for enum printing
-- glm: matrix operations
+
+Arch linux:
+```bash
+sudo pacman -S lldb stlink glm vulkan-devel qt6-base qt6-graphs
+```
+
+Debian:
+```bash
+sudo apt install lldb stlink-tools libglm-dev libvulkan-dev qt6-base-dev qt6-graphicaleffects-dev
+```
 
 ### Install
 

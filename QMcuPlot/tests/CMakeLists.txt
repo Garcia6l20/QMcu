@@ -1,4 +1,9 @@
-link_libraries(QMcuPlot Qt::GuiPrivate)
+if (NOT TARGET Qt6::GuiPrivate)
+  set(QT_NO_PRIVATE_MODULE_WARNING ON)
+  find_package(Qt6 COMPONENTS GuiPrivate REQUIRED)
+endif()
+
+link_libraries(QMcuPlot Qt6::GuiPrivate)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 

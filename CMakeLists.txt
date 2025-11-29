@@ -16,19 +16,12 @@ include(CPM)
 find_package(lldb REQUIRED)
 find_package(stlink REQUIRED)
 find_package(Qt6 COMPONENTS Core Quick Qml Graphs ShaderTools REQUIRED)
+find_package(glm REQUIRED)
 
 CPMAddPackage(
   NAME      magic_enum
   URL       https://github.com/Neargye/magic_enum/releases/download/v0.9.7/magic_enum-v0.9.7.tar.gz
   URL_HASH  SHA256=c047bc7ca0b76752168140e7ae9a4a30d72bf6530c196fdfbf5105a39d40cc46
-)
-
-CPMAddPackage(
-  NAME      glm
-  URL       https://github.com/g-truc/glm/releases/download/1.0.2/glm-1.0.2.zip
-  URL_HASH  SHA256=a41adf423315e35489c1e67689c7bb74c7edd4d207a477b7b19c45cd440c2f67
-  OPTIONS
-    CMAKE_POSITION_INDEPENDENT_CODE ON
 )
 
 set(QML_IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR}/qml)
