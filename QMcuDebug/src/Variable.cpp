@@ -89,7 +89,15 @@ void Variable::resolve()
 
   const auto get_meta_type = [](lldb::SBValue& value)
   {
-    auto type  = value.GetType();
+    auto type = value.GetType();
+    if(type.IsTypedefType())
+    {
+      type = type.GetTypedefedType();
+    }
+    if(type.GetTypeClass() & lldb::eTypeClassEnumeration)
+    {
+      type = type.GetEnumerationIntegerType();
+    }
     auto ctype = type.GetCanonicalType();
     qDebug(lcWatcher) << "query canonical loader for" << type.GetName();
     const auto btype = ctype.GetBasicType();

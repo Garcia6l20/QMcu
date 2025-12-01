@@ -3,7 +3,8 @@
 
 using namespace lldb;
 
-Type::Type(SBType type, Variable* parent) : QObject(parent), type_(type)
+Type::Type(SBType type, Variable* parent)
+    : QObject(parent), type_(type), kind_(Kind(type_.GetTypeClass()))
 {
   if(isArray())
   {
@@ -16,6 +17,11 @@ Type::Type(SBType type, Variable* parent) : QObject(parent), type_(type)
       elemType = nextElement;
     }
     elementType_ = elemType;
+  }
+  else if(type_.IsTypedefType())
+  {
+    elementType_ = type_.GetTypedefedType();
+    kind_        = Kind(elementType_.GetTypeClass());
   }
   else
   {

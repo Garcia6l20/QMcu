@@ -14,12 +14,47 @@ class Type : public QObject
   QML_UNCREATABLE("created by Debugger")
 
   Q_PROPERTY(QString name READ name CONSTANT)
+  Q_PROPERTY(Kind kind READ kind CONSTANT)
 
 public:
+  enum class KindBits : uint32_t
+  {
+    Invalid           = (0u),
+    Array             = (1u << 0),
+    BlockPointer      = (1u << 1),
+    Builtin           = (1u << 2),
+    Class             = (1u << 3),
+    ComplexFloat      = (1u << 4),
+    ComplexInteger    = (1u << 5),
+    Enumeration       = (1u << 6),
+    Function          = (1u << 7),
+    MemberPointer     = (1u << 8),
+    ObjCObject        = (1u << 9),
+    ObjCInterface     = (1u << 10),
+    ObjCObjectPointer = (1u << 11),
+    Pointer           = (1u << 12),
+    Reference         = (1u << 13),
+    Struct            = (1u << 14),
+    Typedef           = (1u << 15),
+    Union             = (1u << 16),
+    Vector            = (1u << 17),
+    // Define the last type class as the MSBit of a 32 bit value
+    Other = (1u << 31),
+    // Define a mask that can be used for any type when finding types
+    Any = (0xffffffffu)
+  };
+  Q_DECLARE_FLAGS(Kind, KindBits);
+  Q_FLAG(Kind)
+
   Type(lldb::SBType type, Variable* parent);
   virtual ~Type() = default;
 
   QString name();
+
+  inline Kind kind() const noexcept
+  {
+    return kind_;
+  }
 
   inline bool isBasic()
   {
@@ -28,12 +63,21 @@ public:
 
   inline lldb::BasicType canonicalBasicType()
   {
+    if(isEnum())
+    {
+      return elementType_.GetCanonicalType().GetEnumerationIntegerType().GetBasicType();
+    }
     return type_.GetCanonicalType().GetBasicType();
   }
 
   inline bool isArray()
   {
-    return type_.IsArrayType();
+    return (kind_ & KindBits::Array) != 0;
+  }
+
+  inline bool isEnum()
+  {
+    return (kind_ & KindBits::Enumeration) != 0;
   }
 
   inline size_t sizeBytes() noexcept
@@ -137,4 +181,7 @@ private:
   lldb::SBType     type_;
   lldb::SBType     elementType_;
   QList<int>       extents_;
+  Kind             kind_ = KindBits::Invalid;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Type::Kind)

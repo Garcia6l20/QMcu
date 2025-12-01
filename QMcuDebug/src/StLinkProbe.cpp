@@ -69,13 +69,21 @@ bool StLinkProbe::read(address_t address, std::span<std::byte> data)
     // read until address
     const auto   down          = align_down(address, expected_alignment);
     const size_t bytes_to_drop = address - down;
-    const size_t bytes_to_read = std::min(expected_alignment - bytes_to_drop, data.size_bytes());
+    const size_t bytes_to_read =
+        std::max(expected_alignment,
+                 std::min(expected_alignment - bytes_to_drop, data.size_bytes()));
 
     uint32_t   value = 0;
     const auto res   = sl_->backend->read_debug32(sl_, down, &value);
 
-    std::memcpy(data.data(), reinterpret_cast<uint8_t*>(&value) + bytes_to_drop, bytes_to_read);
+    std::memcpy(data.data(),
+                reinterpret_cast<uint8_t*>(&value) + bytes_to_drop,
+                std::min(bytes_to_read, data.size_bytes()));
     buffer_offset += bytes_to_read;
+    if(buffer_offset > data.size_bytes())
+    {
+      return true;
+    }
   }
 
   assert(is_aligned(address + buffer_offset, expected_alignment));

@@ -93,8 +93,6 @@ private:
   VulkanContext& vk;
 
 public:
-  vk::ShaderModule                               vertShaderModule;
-  vk::ShaderModule                               geomShaderModule;
   std::vector<vk::ShaderModule>                  shaderModules;
   std::vector<vk::PipelineShaderStageCreateInfo> stageInfos;
   vk::PipelineViewportStateCreateInfo            viewportInfo{{}, 1, nullptr, 1, nullptr};
